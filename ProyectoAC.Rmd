@@ -1,0 +1,23 @@
+---
+title: "ProyectoAC"
+author: "Maria Capilla Zapata"
+date: "2024-10-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Análisis de variables
+
+Primeramente comenzamos cargando la base de datos, guardando en distintas variables los datos que utilizaremos para el entrenamiento y para probar el modelo.
+
+```{r}
+credit = read.table("crx.data", sep = ",")
+credit.trainIdx<-readRDS("credit.trainIdx")
+credit.Datos.Train<-credit[credit.trainIdx,]
+credit.Datos.Test<-credit[-credit.trainIdx,]
+```
+
+## 
