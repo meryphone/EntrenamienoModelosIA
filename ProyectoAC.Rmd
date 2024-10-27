@@ -20,4 +20,14 @@ credit.Datos.Train<-credit[credit.trainIdx,]
 credit.Datos.Test<-credit[-credit.trainIdx,]
 ```
 
-## 
+Realizaremos un visionado de de las estructura de los datos para ver si se han importado correctamente.
+
+```{r}
+head(str(credit.Datos.Train))
+```
+
+Como podemos observar algunos datos que deberían de ser factores se han importado como carácteres, podemos corregirlo con el siguiente comando:
+
+```{r}
+# hacer lapply por variables (las que le toquen) con FUN= as.facor
+```
