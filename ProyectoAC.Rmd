@@ -1,6 +1,9 @@
 ---
-title: "ProyectoAC"
-author: "Maria Capilla Zapata"
+title: "Proyecto AC"
+author:
+  - "Maria Capilla Zapata"
+  - "Gloria Sánchez Alonso"
+  - "Samuel Avilés Conesa"
 date: "2024-10-26"
 output: html_document
 ---
@@ -9,25 +12,55 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Análisis de variables
+# Introdución
 
 Primeramente comenzamos cargando la base de datos, guardando en distintas variables los datos que utilizaremos para el entrenamiento y para probar el modelo.
 
 ```{r}
 credit = read.table("crx.data", sep = ",")
 credit.trainIdx<-readRDS("credit.trainIdx")
-credit.Datos.Train<-credit[credit.trainIdx,]
-credit.Datos.Test<-credit[-credit.trainIdx,]
+#credit.Datos.Train<-credit[credit.trainIdx,]
+#credit.Datos.Test<-credit[-credit.trainIdx,]
 ```
 
-Realizaremos un visionado de de las estructura de los datos para ver si se han importado correctamente.
+Después comprobamos que efectivamente, tenemos 553 observaciones.
 
 ```{r}
-head(str(credit.Datos.Train))
+nrow(credit.Datos.Train)
+nrow(credit.Datos.Test)
 ```
 
-Como podemos observar algunos datos que deberían de ser factores se han importado como carácteres, podemos corregirlo con el siguiente comando:
+## 1. Preprocesado de datos
+
+### 1.1 Analisis de variables
+
+Primero tenemos que analizar que variables tiene credit en su base de datos, para ello;
 
 ```{r}
-# hacer lapply por variables (las que le toquen) con FUN= as.facor
+credit = na.omit(credit)
+credit["V1"] = lapply(credit["V1"], FUN = as.factor)
+credit["V2"] = lapply(credit["V2"], FUN = as.numeric)
+str(credit)
 ```
+
+Observamos que cuando transformamos las variables a su tipo de dato correspondiente obtenemos algunos errores en las variables:
+
+Como se puede observar V3,V8,V11 y V15 son valores enteros.
+
+-   Para `V3`, la media es 4.759, con un rango que va de 0(min) a 28(max). Esto sugiere una dispersión moderada y posiblemente algunos valores altos que podrían ser atípicos, ya que la media de estos valores ronda los 4, por lo tanto, los valores que se acercen al maximo, 28, seran atípicos.
+
+    La mediana nos reafirma aun más que hay valores atípicos, ya que es menor que la media. Estamos ante una distribución de datos que tiene una asimetría positiva o sesgo hacia la derecha. Esto significa que hay valores extremadamente altos que están afectando la media, llevándola a ser mayor que la mediana. Presencia de valores atípicos o extremos: Valores muy altos están "tirando" la media hacia arriba, mientras que la mediana se mantiene menos afectada por estos valores extremos.
+
+-   `V8` tiene una media de 2.223 y un rango de 0 a 28.5, con una distribución aparentemente sesgada hacia la izquierda, ya que la mediana es 1.0.
+
+-   `V11` tiene un valor máximo de 67, con una media de 2.4 y una mediana de 0, lo que podría indicar la presencia de varios valores bajos o ceros y algunos valores altos que podrían ser considerados outliers.
+
+-   `V15` muestra un valor máximo muy alto (100,000), con una media de 1017.4, lo cual también sugiere que podría tener valores atípicos significativos.
+
+### 1.2 Tratamiento de valores nulos, extremos y atípicos.
+
+### 1.3 Eliminación de variables superfluas
+
+### 1.4 Transformacion justificada de los datos
+
+## 2. Entrenamiento de modelos/técnicas
