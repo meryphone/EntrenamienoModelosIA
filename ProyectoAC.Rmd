@@ -96,7 +96,7 @@ summary(credit$V2)
 ```
 
 
-- *Rango de valores**: La variable `V2` tiene un rango bastante amplio, con valores que van desde 13.75 hasta 76.75.
+- **Rango de valores**: La variable `V2` tiene un rango bastante amplio, con valores que van desde 13.75 hasta 76.75.
 
 - **Distribución de los datos**:
 
@@ -120,9 +120,9 @@ myhist = myhist + geom_vline(xintercept = median(credit$V2),
 myhist
 ```
 
--La distribución es **asimétrica a la derecha** o **sesgada positivamente,** como se había inferido anteriormente. La mayoría de los valores están en el rango bajo (de 15 a 40), y solo unos pocos valores están en el rango superior.
+- La distribución es **asimétrica a la derecha** o **sesgada positivamente,** como se había inferido anteriormente. La mayoría de los valores están en el rango bajo (de 15 a 40), y solo unos pocos valores están en el rango superior.
 
--Hay algunos valores dispersos hacia la derecha que elevan el promedio, lo que sugiere que existen **valores atípicos** o extremos en el extremo superior.
+- Hay algunos valores dispersos hacia la derecha que elevan el promedio, lo que sugiere que existen **valores atípicos** o extremos en el extremo superior.
 
 ```{r}
 myplot = ggplot(data=credit,aes(sample=V2)) +
@@ -147,7 +147,7 @@ Características de nuestros datos:
 
 - Los valores de esta variable se encuentran en un rango entre 0(min) y 28(max).
 
-- El primer cuartil(1.040) y el tercer cuartil(7.500) indican que la mayoría de los datos se encuentran entre esos valores. Respecto a los valores atipicos, se nota que existe ya que el valor mas alto que es 28 supera de forma significativa el tercer cuartil.
+- El primer cuartil(1.040) y el tercer cuartil(7.500) indican que la mayoría de los datos se encuentran entre esos valores. Respecto a los valores atipicos, se nota que existen ya que el valor mas alto que es 28 supera de forma significativa el tercer cuartil.
 
 - La mayoría de los datos de V3 parecen concentrarse en valores relativamente bajos, con unos pocos valores mucho mayores que podrían ser considerados outliers o valores extremos.
 
@@ -184,7 +184,9 @@ ggplot(credit, aes(sample = V3)) +
 summary(credit$V8)
 ```
 
-Como podemos observar en el resumen de la variable, la media es bastante superior a la mediana esto es debido a los valores atípicos, también lo podemos observar en el valor máximo que es 28.50. También podemos ver en los cuartiles como nos anuncian que hay muchos datos atípicos ya que los cuartiles están cercanos a la media y a la mediana pero el valor máximo es muy dispar. Para poder ver como se distribuyen los datos en nuestra variable creamos los siguientes plots:
+- Como podemos observar en el resumen de la variable, la media es bastante superior a la mediana esto es debido a los     valores atípicos, también lo podemos observar en el valor máximo que es 28.50. 
+- También podemos ver en los cuartiles como nos anuncian que hay muchos datos atípicos ya que los cuartiles están        cercanos a la media y a la mediana pero el valor máximo es muy dispar. 
+Para poder ver como se distribuyen los datos en nuestra variable creamos los siguientes plots:
 
 ```{r}
 myhist = ggplot(data=credit, aes(x = V8)) +
@@ -215,7 +217,9 @@ ggplot(data = credit, aes(sample = V8)) +
 
 ```
 
-Como podemos observar en el histograma estamos ante una distribución asimétrica positiva, sesgada a la derecha, ya que la mayor parte de los datos se encuentran en valores más cercanos a 0 mientras que los valores más altos son menos frecuentes.Aunque la mayoría de los datos se encuentran en valores bajos, hay una cola larga en el extremo derecho del histograma hasta valores cercanos a 30, estos valores atípicos sería necesario limpiarlos por que ensucian la muestra.A su vez el diagrama QQ nos reafirma lo analizado anteriormente mostrando claramente como para valores mas altos los datos se alejan de la distribución teórica normal representada por la recta.
+- Como podemos observar en el histograma estamos ante una distribución asimétrica positiva, sesgada a la derecha, ya  que la mayor parte de los datos se encuentran en valores más cercanos a 0 mientras que los valores más altos son     menos frecuentes.
+- Aunque la mayoría de los datos se encuentran en valores bajos, hay una cola larga en el extremo derecho del          histograma hasta valores cercanos a 30, estos valores atípicos sería necesario limpiarlos por que ensucian la        muestra.
+- A su vez el diagrama QQ nos reafirma lo analizado anteriormente mostrando claramente como para valores mas  altos    los datos se alejan de la distribución teórica normal representada por la recta.
 
 ## Analisis multivariable
 ```{r}
@@ -260,11 +264,14 @@ La matriz de correlación muestra los coeficientes de correlación entre cada pa
   El gráfico muestra que algunos atributos pueden ayudar a discriminar entre la clase + y la -. Por ejemplo:
         V2, V8 y V11: Estas variables muestran diferencias de dispersión o concentración entre las clases, lo que            indica que pueden ser útiles para la clasificación de crédito.
         Distribuciones Dispares: Las diferencias en las distribuciones de V2, V8, y V14 entre las clases sugieren que         estas variables podrían ayudar a identificar si un crédito será aprobado o denegado.
-##  Tratamiento de valores extremos y atípicos.
-Para continuar, vamos a comenzar con el tratamiento de valores extremos y atípicos, para ello vamos a calcular
-el valor limite superior e inferior para considerarlos atípicos. Vamos a repetir el cálculo con todas las 
-variables númericas de la BBDD.
-### Variable V2
+
+## Tratamiento de valores extremos y atípicos.
+
+Para continuar, vamos a comenzar con el tratamiento de valores extremos y atípicos debido
+a que los valores nulos y desconocidos ya han sido eliminados. 
+Para continuar, vamos a calcular el valor limite superior e inferior para considerarlos atípicos. Vamos a repetir el cálculo con todas las variables númericas de la BBDD.
+
+### Variable V2, V3 y V14
 ```{r}
 Q1=quantile(credit$V2,0.25)
 Q3=quantile(credit$V2,0.75)
@@ -273,16 +280,9 @@ limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
 atipicosv2=credit$V2[credit$V2<limiteInferior | credit$V2>limiteSuperior] 
 percAtipicos=100*length(atipicosv2)/length((credit$V2))
-print(paste("El límite inferior =", limiteInferior))
-print(paste("El límite superior =", limiteSuperior))
-print(paste("El límite inferior calculado por el boxplot = ",boxplot(credit$V2, plot=FALSE)$stats[1]))
-print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+print(paste("El porcentaje de datos atípicos para V2 es = ",percAtipicos))
 
 ```
-Como podemos ver, el limite inferior calculado es muy bajo. Al realizar un boxplot para comprobar los
-cálculos vemos como el límite inferior dado por el boxplot es 13.75 debido a que es el valor más
-bajo de la variable.
-### Variable V3
 ```{r}
 Q1=quantile(credit$V3,0.25)
 Q3=quantile(credit$V3,0.75)
@@ -291,11 +291,27 @@ limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
 atipicosv3=credit$V3[credit$V3<limiteInferior | credit$V3>limiteSuperior] 
 percAtipicos=100*length(atipicosv3)/length((credit$V3))
-print(paste("El límite inferior =", limiteInferior))
-print(paste("El límite superior =", limiteSuperior))
-print(paste("El límite inferior calculado por el boxplot = ",boxplot(credit$V3, plot=FALSE)$stats[1]))
-print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+print(paste("El porcentaje de datos atípicos para V3 es = ",percAtipicos))
 ```
+
+```{r}
+Q1=quantile(credit$V14,0.25)
+Q3=quantile(credit$V14,0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosv14=credit$V14[credit$V14<limiteInferior | credit$V14>limiteSuperior] 
+percAtipicos=100*length(atipicosv14)/length((credit$V14))
+print(paste("El porcentaje de datos atípicos para V14 es = ",percAtipicos))
+```
+
+  Como podemos ver el **porcentaje de valores atípicos** es muy bajo. Por ello, vamos
+  a mantener los datos atípicos intactos para estas variables, ya que no merece
+  la pena tratarlos al ser un porcentaje tan pequeño,pueden representar variabilidad
+  real y natural en los datos. En caso de tratarlos, podríamos perder precisión e información
+  valiosa necesaria por el modelo para aprender sobre situaciones fuera de lo común.
+
+
 ### Variable V8
 ```{r}
 Q1=quantile(credit$V8,0.25)
@@ -305,13 +321,44 @@ limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
 atipicosv8=credit$V8[credit$V8<limiteInferior | credit$V8>limiteSuperior] 
 percAtipicos=100*length(atipicosv8)/length((credit$V8))
-print(paste("El límite inferior =", limiteInferior))
-print(paste("El límite superior =", limiteSuperior))
-print(paste("El límite inferior calculado por el boxplot = ",boxplot(credit$V8, plot=FALSE)$stats[1]))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
+```{r}
+ggplot(credit, aes(x = V8)) +
+  geom_histogram(bins = 30, fill = "orange", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de V8 original", x = "V8 (original)", y = "Frecuencia")
+
+```
+
+- Una vez analizados los datos expuestos, vemos que el porcentaje de datos atípicos
+  es relativamente alto. Por lo tanto, hemos decidido llevar a cabo una normalización
+  $min-max$ debido a que la representación del histograma de la variable muestra una 
+  distribución altamente sesgada hacia la derecha, donde la mayor parte de los valores
+  estan cerca de 0. Se realiza para que la variable v8 sea mas interpretable y consistente.
+
+```{r}
+#Normalización min/max
+credit$V8 <- (credit$V8 - min(credit$V8)) / (max(credit$V8) - min(credit$V8))
+min(credit$V8)  
+max(credit$V8)  
+```
+Los resultados que hemos obtenido (minimo = 0 y maximo = 1) indican que la 
+normalización $min-max$ para la variable V8 se ha realizado correctamente.
+
+```{r}
+
+ggplot(credit, aes(x = V8)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de V8 Normalizada", x = "V8 (normalizada)", y = "Frecuencia")
+
+```
+
+Al realizar el histograma, podemos comprobar que la forma de la distribución original
+sigue presente, habiendo acotado el rango de valores correctamente sin perder las 
+característica naturales de la variable.
 
 ### Variable V11
+
 ```{r}
 Q1=quantile(credit$V11,0.25)
 Q3=quantile(credit$V11,0.75)
@@ -320,26 +367,57 @@ limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
 atipicosv11=credit$V11[credit$V11<limiteInferior | credit$V11>limiteSuperior] 
 percAtipicos=100*length(atipicosv11)/length((credit$V11))
-print(paste("El límite inferior =", limiteInferior))
-print(paste("El límite superior =", limiteSuperior))
-print(paste("El límite inferior calculado por el boxplot = ",boxplot(credit$V11, plot=FALSE)$stats[1]))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+library(e1071)
+# Asimetría antes de la transformación
+skewness(credit$V11)
 ```
-### Variable V14
+
 ```{r}
-Q1=quantile(credit$V14,0.25)
-Q3=quantile(credit$V14,0.75)
-RIC=Q3-Q1
-limiteInferior=Q1-1.5*RIC
-limiteSuperior=Q3+1.5*RIC
-atipicosv14=credit$V14[credit$V14<limiteInferior | credit$V14>limiteSuperior] 
-percAtipicos=100*length(atipicosv14)/length((credit$V14))
-print(paste("El límite inferior =", limiteInferior))
-print(paste("El límite superior =", limiteSuperior))
-print(paste("El límite inferior calculado por el boxplot = ",boxplot(credit$V14, plot=FALSE)$stats[1]))
-print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+ggplot(credit, aes(x = V11)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de la Variable V11", x = "V11", y = "Frecuencia") +
+  theme_minimal()
 ```
+
+Observando el histograma y el porcentaje de valores atípicos, nos damos cuenta 
+que la distribución de los datos tiene una asimetría hacia la derecha. Debido al
+gran porcentaje de atípicos obtenido y a la alta asimetría, decidimos aplicar 
+una transformación logarítmica ya que:
+
+- Reduce la asimetría y hace que la distribución sea más simétrica.
+- Limita el impacto de valores atípicos.
+- Facilita la interpretación en términos relativos.
+
+
+```{r}
+credit$V11 <- log(credit$V11 + 1)  # +1 para evitar log(0) en valores cercanos a cero
+ggplot(credit, aes(x = V11)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de la Variable V11 transformada", x = "V11", y = "Frecuencia") +
+  theme_minimal()
+```
+
+```{r}
+# Calcular el porcentaje de valores atípicos para V11
+Q <- quantile(credit$V11, c(0.25, 0.75))
+IQR <- Q[2] - Q[1]
+lim_inf <- Q[1] - 1.5 * IQR
+lim_sup <- Q[2] + 1.5 * IQR
+
+porc_atipicos <- mean(credit$V11 < lim_inf | credit$V11 > lim_sup) * 100
+porc_atipicos
+skewness(credit$V11)
+```
+
+Como podemos comprobar, hemos reducido ampliamente la asimetría así como los valores
+atípicos. El porcentaje es significativamente menor que antes. Lo podemos ver en el
+histograma realizado despues de aplicar la transformación y en el cálculo de asimetría 
+y porcentaje de atípicos.
+
+  
 ### Variable V15
+
 ```{r}
 Q1=quantile(credit$V15,0.25)
 Q3=quantile(credit$V15,0.75)
@@ -348,13 +426,36 @@ limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
 atipicosv15=credit$V15[credit$V15<limiteInferior | credit$V15>limiteSuperior] 
 percAtipicos=100*length(atipicosv15)/length((credit$V15))
-print(paste("El límite inferior =", limiteInferior))
-print(paste("El límite superior =", limiteSuperior))
-print(paste("El límite inferior calculado por el boxplot = ",boxplot(credit$V15, plot=FALSE)$stats[1]))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
-### 1.3 Eliminación de variables superfluas
+```{r}
+ggplot(credit, aes(x = V15)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de la Variable V15", x = "V15", y = "Frecuencia") +
+  theme_minimal()
+```
 
-### 1.4 Transformacion justificada de los datos
+Analizando el gráfico obtenido podemos ver que la mayor parte de los valores de 
+la variable se encuentran cercanos a 0 pero tenemos ciertos valores muy superiores.
+Debido a que no estamos seguros acerca de si estos valores son significativos o no
+vamos a aplicar una transformación de raíz cuadrada ya que suaviza los valores altos
+sin comprimir en exceso la distribución y reduce la asimetría en distribuciones como esta
+sesgadas a la derecha.
+```{r}
+credit$V15 <- sqrt(credit$V15)
+ggplot(credit, aes(x = V15)) +  # V15 es la variable transformada
+  geom_histogram(bins = 30, fill = "orange", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de V15 Transformada (Raíz Cuadrada)", x = "V15 (Transformada)", y = "Frecuencia") +
+  theme_minimal()
+```
 
-## Entrenamiento de modelos/técnicas
+Como observamos en el histograma dibujado, se ha logrado una compresión de los valores
+sin perder la forma de la distribución aunque si se ha suavizado la cola hacia la derecha.
+La frecuencia concentrada en valores bajos sigue siendo similar, conservando así la característica
+natural de la variable.
+
+## Eliminación de variables superfluas
+
+## Transformacion justificada de los datos
+
+# Entrenamiento de modelos/técnicas
