@@ -456,6 +456,29 @@ natural de la variable.
 
 ## Eliminación de variables superfluas
 
+Antes de llevar a cabo la eliminación de alguna variable, vamos a realizar un estudio
+de correlación entre las variables predictoras y la variable objetivo. Para ello, vamos
+a convertir la variable V16, que representa un evento binario, a eventos probabilisticos.
+
+Para ello, vamos a crear un modelo de regresión logístico. Comenzamos creando un modelo
+de regresión generalizable cuyo error de distribución pertenece a la familia binomial y
+la función especifica para modelarlo es logit (logaritmo de odds ratio).
+
+```{r}
+# Convertir todas las columnas de 'credit' a formato numérico
+credit_num <- data.frame(lapply(credit, function(x) {
+  if (is.factor(x)) {
+    return(as.numeric(x))  # Convierte factores a numéricos asignando un número a cada nivel
+  } else {
+    return(x)  # Deja las variables numéricas como están
+  }
+}))
+credit_num$V16 <- as.factor(unlist(credit_num$V16))
+
+mymodel2 = glm(V16 ~ ., data=credit_num,family=binomial(link="logit"))
+summary(mymodel2)
+```
+
 ## Transformacion justificada de los datos
 
 # Entrenamiento de modelos/técnicas
