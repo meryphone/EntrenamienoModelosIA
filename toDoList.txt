@@ -1,0 +1,40 @@
+-Explorar 3 variables con análisis monovariable y 1 variable con multivariable
+-Tratar nulos y atípicos
+	Respóndase a las siguientes preguntas en relación a la preparación de datos
+
+	¿Qué predictores habría que normalizar? ¿Por qué? ¿Cuál sería la estrategia de normalización en cada caso?
+
+	¿Podría ser interesante transformar algún atributo o grupos de atributos en uno nuevo? ¿Por qué?
+
+¿Cómo podría aprovecharse el carácter secuencial de los datos?
+-Eliminar/añadir alguna variable
+-Entrenar con 4 modelos diferentes de caret
+	Se ha de demostrar que se conoce mínimamente cada uno de los algoritmos planteados. Por tanto, se pide para cada uno de los algoritmos elegidos,
+
+	Funcionamiento: explicar brevemente el tipo de modelo que genera el algoritmo, y cuál es la estrategia de dicho algoritmos para construir el modelo. (0.5 puntos)
+
+	Requisitos: Indicar si el algoritmo en cuestión tiene algún requisito en cuanto a si se han de preprocesar los datos (e.g. escalado, imputación de valores nulos, etc.) y cómo. 
+	Explicar cómo se ha tenido en cuenta estos requisitos a la hora de generar los datos de training específicos para este algoritmo. (1 puntos)
+
+	Descripción de hiperparámetros: Identificar y explicar cada uno de sus parámetros de configuración (1 punto)
+
+	Grid hiperparámetros: Detallar una estrategia para la generación del grid de valores para hiperparámetros a usar. (2 puntos)
+	
+	Resultados: describir los resultados del algoritmo (1).
+
+-Entrenar y comparar al menos un mismo modelo con dos maneras diferentes de preprocesar los datos (p.e. eliminando tal variable en uno y dej´andola en otro, o escalando tales
+variables en uno y no escalando en otros
+-Comprar rendimientos de al menos 4 modelos entrenados:
+	1. Modelo/Técnica 1 (Simple o Complejo)
+	2. Modelo/Técnica 2 (Complejo)
+	3. Modelo/Técnica 3 (Complejo)
+	4. Modelo/Técnica 4 (Complejo)
+		(a) con preprocesado 1
+		(b) con preprocesado 2
+-Decidir cual es el modelo que terminamos usando (justificarlo)
+
+	Para la elección del modelo final, entre todas las técnicas probadas en el apartado C, 
+	se seguirá el método basado en la función caret::resamples() explicado en la sección 5.8.2 de la documentación de Caret (ver apartado 5.8).
+	https://topepo.github.io/caret/model-training-and-tuning.html#exploring-and-comparing-resampling-distributions
+
+-Estimar rendimiento del modelo final sobre datos futuros.

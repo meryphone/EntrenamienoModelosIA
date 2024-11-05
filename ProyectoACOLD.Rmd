@@ -28,7 +28,7 @@ Primeramente comenzamos cargando la base de datos, guardando en distintas variab
 por NA y poder ser eliminado posteriormente.
 
 ```{r}
-credit = read.table("crx.data", sep = ",", na.strings ="?")
+credit = read.table("crx.data", sep = ",",na.strings = "?")
 credit.trainIdx<-readRDS("credit.trainIdx")
 #credit.Datos.Train<-credit[credit.trainIdx,]
 #credit.Datos.Test<-credit[-credit.trainIdx,]
@@ -46,13 +46,23 @@ nrow(credit.Datos.Train)
 Primero tenemos que analizar que variables tiene credit en su base de datos
 
 ```{r}
-str(credit)
+head(credit)
 ```
 
-Observamos al importar la base de datos el tipo de datos de las variables es incorrecto, además de que hay datos incompletos, por lo que procedemos a corregirlo ejecutando:
+Observamos al importar la base de datos el tipo de datos de las variables es incorrecto. Antes de
+corregir los tipos de datos vamos a cuantos datos y cuales de ellos, tiene "missing data", para ello
+usaremos **complete.cases()** que veremos más adelante en la sección de tratar los datos nulos:
 
 ```{r}
-credit = na.omit(credit)
+sum(!complete.cases(credit))
+credit[!complete.cases(credit),]
+```
+
+Tras ver que efectivamente tenemos datos nulos, procedemos a transformar el tipo de dato
+de las variables tal y como se especifica en la documentación de la libreria.
+
+
+```{r}
 credit["V1"] = lapply(credit["V1"], FUN = as.factor)
 credit["V2"] = lapply(credit["V2"], FUN = as.numeric)
 credit["V3"] = lapply(credit["V3"], FUN = as.numeric)
@@ -69,15 +79,15 @@ credit["V13"] = lapply(credit["V13"], FUN = as.factor)
 credit["V14"] = lapply(credit["V14"], FUN = as.numeric)
 credit["V15"] = lapply(credit["V15"], FUN = as.numeric)
 credit["V16"] = lapply(credit["V16"], FUN = as.factor)
-str(credit)
+head(credit)
 ```
 
 Ahora observamos que la variable V4 solo tiene 3 niveles y debería de tener 4, es decir, hay algún valor que nunca aparece en los datos. Viendo en la descripción de la BBDD podemos ver que debería aparecer el valor "t". Lo añadimos:
 
 ```{r}
 levels(credit$V4)<-c(levels(credit$V4),"t")
-str(credit$V4)
-str(credit)
+head(credit$V4)
+head(credit)
 ```
 
 Una vez corregido el tipos de datos, añadido las categorías faltantes y quitado los valores incompletos y nulos nos queda la siguiente base de datos:

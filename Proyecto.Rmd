@@ -1,0 +1,552 @@
+---
+title: "Proyecto AC"
+author:
+  - "Maria Capilla Zapata"
+  - "Gloria Sánchez Alonso"
+  - "Samuel Avilés Conesa"
+date: "`r Sys.Date()`"
+output: 
+
+  html_document:
+      toc: true
+      toc_float: true
+      theme: spacelab
+      highlight: kate
+      df_print: paged
+      number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introdución
+
+## Carga de la base de datos.
+
+Primeramente comenzamos cargando la base de datos, guardando en distintas variables los datos que utilizaremos para el entrenamiento y para probar el modelo. Añadimos la opción "na.strings=?" para sustituir los valores desconocidos
+por NA y poder ser procesados posteriormente.
+
+```{r}
+credit = read.table("crx.data", sep = ",",na.strings = "?")
+```
+
+
+# Preprocesado de datos(I): Tratamiento inicial de la BBDD
+
+
+Primero tenemos que analizar que variables tiene contiene la base de datos
+
+```{r}
+head(credit)
+```
+
+Observamos al importar la base de datos el tipo de datos de las variables es incorrecto. Antes de
+corregir los tipos de datos vamos a cuantos datos y cuales de ellos, tiene "missing data", para ello
+usaremos **complete.cases()** que veremos más adelante en la sección de tratar los datos nulos:
+
+```{r}
+sum(!complete.cases(credit))
+credit[!complete.cases(credit),]
+```
+
+Tras ver que efectivamente tenemos datos nulos, procedemos a transformar el tipo de dato
+de las variables tal y como se especifica en la documentación de la base de datos.
+
+
+```{r}
+credit["V1"] = lapply(credit["V1"], FUN = as.factor)
+credit["V2"] = lapply(credit["V2"], FUN = as.numeric)
+credit["V3"] = lapply(credit["V3"], FUN = as.numeric)
+credit["V4"] = lapply(credit["V4"], FUN = as.factor)
+credit["V5"] = lapply(credit["V5"], FUN = as.factor)
+credit["V6"] = lapply(credit["V6"], FUN = as.factor)
+credit["V7"] = lapply(credit["V7"], FUN = as.factor)
+credit["V8"] = lapply(credit["V8"], FUN = as.numeric)
+credit["V9"] = lapply(credit["V9"], FUN = as.factor)
+credit["V10"] = lapply(credit["V10"], FUN = as.factor)
+credit["V11"] = lapply(credit["V11"], FUN = as.numeric)
+credit["V12"] = lapply(credit["V12"], FUN = as.factor)
+credit["V13"] = lapply(credit["V13"], FUN = as.factor)
+credit["V14"] = lapply(credit["V14"], FUN = as.numeric)
+credit["V15"] = lapply(credit["V15"], FUN = as.numeric)
+credit["V16"] = lapply(credit["V16"], FUN = as.factor)
+head(credit)
+```
+
+Ahora observamos que la variable V4 solo tiene 3 niveles y debería de tener 4, es decir, hay algún valor que nunca aparece en los datos. Viendo en la descripción de la BBDD podemos ver que debería aparecer el valor "t". Lo añadimos:
+
+```{r}
+levels(credit$V4)<-c(levels(credit$V4),"t")
+head(credit$V4)
+head(credit)
+```
+
+Una vez corregido el tipos de datos y añadido las categorías faltantes nos queda la siguiente base de datos:
+
+```{r}
+summary(credit)
+str(credit)
+```
+
+
+
+##  Análisis univariable
+
+### Análisis V2
+
+```{r}
+summary(credit$V2)
+```
+
+
+- **Rango de valores**: La variable `V2` tiene un rango bastante amplio, con valores que van desde 13.75 hasta 80.25.
+
+- **Distribución de los datos**:
+
+- La **media** (31.57) está algo cerca de la **mediana** (28.46), lo que sugiere una distribución relativamente simétrica pero con una ligera tendencia hacia valores mayores, especialmente considerando que el máximo es bastante más alto que el tercer cuartil.
+
+- **Cuartiles**: La diferencia entre el primer cuartil (22.60) y el tercer cuartil (38.23) indica que el 50% intermedio de los valores de `V2` se encuentra en un rango moderado, entre 22.60 y 38.23.
+Posibles valores atípicos:
+- Dado que el máximo (80.25) está bastante alejado de la mediana (28.46) y del tercer cuartil (38.23), esto podría indicar la presencia de valores atípicos en el extremo superior de la distribución.
+
+Para estar seguros de la distribución que sigue v2, creamos un histograma de dicha variable:
+
+```{r}
+library(ggplot2)
+myhist = ggplot(data=na.omit(credit),aes(V2)) +
+  geom_histogram(col="orange",fill="orange",alpha=0.2) + 
+  labs(title="Histograma para V2", y="Count") 
+myhist = myhist + geom_vline(xintercept = mean(credit$V2),
+                             col="blue",linetype="dashed")
+myhist = myhist + geom_vline(xintercept = median(credit$V2),
+                             col="red",linetype="dashed")
+myhist
+```
+
+La distribución es **asimétrica a la derecha** o **sesgada positivamente,** como se había inferido anteriormente. La mayoría de los valores están en el rango bajo (de 15 a 40), y solo unos pocos valores están en el rango superior.
+
+Hay algunos valores dispersos hacia la derecha que elevan el promedio, lo que sugiere que existen **valores atípicos** o extremos en el extremo superior.
+
+```{r}
+myplot = ggplot(data=na.omit(credit),aes(sample=V2)) +
+  ggtitle("QQ plot para V2") +
+  geom_qq() + 
+  stat_qq_line() + 
+  xlab("Distribución teórica") + ylab("Distribución muestral")
+myplot
+```
+
+El gráfico Q-Q muestra cómo se distribuyen los datos en comparación con una **distribución normal teórica**.
+
+- La curva de puntos se desvía hacia arriba en el extremo derecho, lo que confirma el **sesgo a la derecha** (positivamente sesgado). Los valores en el extremo superior no siguen la línea diagonal, indicando que hay algunos valores altos que se desvían de la normalidad.
+
+- La parte inferior del gráfico muestra algunos puntos ligeramente por debajo de la línea, lo que indica que la distribución no es perfectamente simétrica en esa zona, aunque el sesgo es más pronunciado hacia la derecha.
+
+### Análisis de V3
+```{r}
+summary(credit$V3)
+```
+
+Características de nuestros datos:
+
+- La media de esta variable, como se puede observar 4.759, es mayor que la mediana, que es 2.750, lo que indica que es una distribución sesgada hacia la derecha (algunos de los valores que son mas altos están haciendo que la media aumente).
+
+- Los valores de esta variable se encuentran en un rango entre 0(min) y 28(max).
+
+- El primer cuartil(1) y el tercer cuartil(77.207) indican que la mayoría de los datos se encuentran entre esos valores. Respecto a los valores atipicos, se nota que existen ya que el valor mas alto que es 28 supera de forma significativa el tercer cuartil.
+
+- La mayoría de los datos de V3 parecen concentrarse en valores relativamente bajos, con unos pocos valores mucho mayores que podrían ser considerados outliers o valores extremos.
+
+    Para confirmar los valores atípicos y como se distribuyen los datos en la variable representamos los valores en el histograma:
+
+```{r}
+myhist=ggplot(data=credit, aes(x = V3)) +
+  geom_histogram(col = "orange", fill = "orange", alpha = 0.2,
+                 breaks = seq(0, 30, by = 1)) +
+  labs(title = "Histograma para el análisis de la variable V3", y = "Count") 
+
+# Marca el valor de la media con una línea azul vertical
+myhist <- myhist + geom_vline(xintercept = mean(credit$V3),
+                              col = "blue", linetype = "dashed")
+
+# Marca el valor de la mediana con una línea roja vertical
+myhist <- myhist + geom_vline(xintercept = median(credit$V3),
+                              col = "red", linetype = "dashed")
+myhist
+```
+
+Para poder intuir si una muestra sigue una determinada distribución estadística se pueden usar los diagramas del tipo Q−Q.
+
+```{r}
+ggplot(credit, aes(sample = V3)) +
+  stat_qq() +
+  stat_qq_line(color = "blue", linetype = "dashed") +
+  labs(title = "Diagrama Q-Q de V3", x = "Cuantiles Teóricos", y = "Cuantiles Muestrales")
+```
+
+### Análisis V8
+
+```{r}
+summary(credit$V8)
+```
+
+Como podemos observar en el resumen de la variable, la media es bastante superior a la mediana esto es debido a los valores atípicos, también lo podemos observar en el valor máximo que es 28.50. 
+
+También podemos ver en los cuartiles como nos anuncian que hay muchos datos atípicos ya que los cuartiles están     cercanos a la media y a la mediana pero el valor máximo es muy dispar. 
+
+Para poder ver como se distribuyen los datos en nuestra variable creamos los siguientes plots:
+
+```{r}
+myhist = ggplot(data=credit, aes(x = V8)) +
+  geom_histogram(col="orange", fill="orange", alpha=0.2,
+                 breaks=seq(0, 30, by=1)) + 
+  labs(title="Histograma para el análisis de la variable V8", y="Count") 
+
+# Marca el valor de la media con una línea azul vertical
+myhist = myhist + geom_vline(xintercept = mean(credit$V8),
+                             col="blue", linetype="dashed")
+
+# Marca el valor de la mediana con una línea roja vertical
+myhist = myhist + geom_vline(xintercept = median(credit$V8),
+                             col="red", linetype="dashed")
+
+
+# Mostrar el histograma
+myhist
+```
+
+```{r}
+ggplot(data = credit, aes(sample = V8)) +
+  ggtitle("QQ plot para variable V8") +
+  stat_qq() + 
+  stat_qq_line() +
+  xlab("Distribución teórica") +
+  ylab("Distribución muestral")
+
+```
+
+Como podemos observar en el histograma estamos ante una distribución asimétrica positiva, sesgada a la derecha, ya  que la mayor parte de los datos se encuentran en valores más cercanos a 0 mientras que los valores más altos son     menos frecuentes.
+
+Aunque la mayoría de los datos se encuentran en valores bajos, hay una cola larga en el extremo derecho del          histograma hasta valores cercanos a 30, estos valores atípicos sería necesario limpiarlos por que ensucian la        muestra.
+
+A su vez el diagrama QQ nos reafirma lo analizado anteriormente mostrando claramente como para valores mas  altos    los datos se alejan de la distribución teórica normal representada por la recta.
+
+## Analisis multivariable
+
+```{r}
+# Matriz de dispersión para analizar la relación entre V2, V3, V8 y V16
+library(GGally)
+ggpairs(na.omit(credit), columns = c("V2", "V3", "V8","V14","V15", "V16"),aes(color = V16, alpha = 0.6), title = "Análisis Multivariable de V2 V3 V8 V4 Y V15")
+
+```
+
+
+Se ha coloreado el gráfico mediante la variable categórica V16 la cual determina si la compra fue
+aprobada o no.
+
+Las variables mas útiles para el modelo pueden ser **V2, V8, y V3** ya que parecen ser las más **prometedoras**, debido a que muestran ciertas diferencias en la distribución de las clases de V16 y tienen correlaciones moderadas entre sí.
+
+Las variables potencialmente problemáticas son V14 y V15 ya que tienen mucha dispersión y valores extremos, especialmente V15, lo cual podría requerir tratamiento adicional, como transformación logarítmica o normalización.
+
+Las transformaciones sugeridas se deben al sesgo y la amplia escala en V8, V14, y V15, estas variables podrían beneficiarse de una transformación logarítmica o raíz cuadrada para reducir la dispersión y mejorar su manejo en el modelo.
+
+Este análisis multivariable sugiere que, para mejorar la interpretación y el rendimiento del modelo, sería útil **preprocesar V8,y V15,** así como priorizar **V2, V3, y V8** como **variables predictoras** principales.
+
+# Pre-procesado de Datos (II): Tratamiento de outliers y nulos
+
+Para continuar, vamos a comenzar con el tratamiento de valores nulos y atípicos debido.
+Vamos a calcular el valor limite superior e inferior para considerarlos atípicos. Vamos a repetir el cálculo con todas las variables númericas de la BBDD.
+
+## Variable V2, V3 y V14
+
+```{r}
+Q1=quantile(na.omit(credit$V2),0.25)
+Q3=quantile(na.omit(credit$V2),0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosv2=na.omit(credit$V2)[na.omit(credit$V2)<limiteInferior | na.omit(credit$V2)>limiteSuperior] 
+percAtipicos=100*length(atipicosv2)/length((na.omit(credit$V2)))
+print(paste("El porcentaje de datos atípicos para V2 es = ",percAtipicos))
+
+```
+```{r}
+Q1=quantile(na.omit(credit$V3),0.25)
+Q3=quantile(na.omit(credit$V3),0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosv3=na.omit(credit$V3)[na.omit(credit$V3)<limiteInferior | na.omit(credit$V3)>limiteSuperior] 
+percAtipicos=100*length(atipicosv3)/length((na.omit(credit$V3)))
+print(paste("El porcentaje de datos atípicos para V3 es = ",percAtipicos))
+```
+
+```{r}
+Q1=quantile(na.omit(credit$V14),0.25)
+Q3=quantile(na.omit(credit$V14),0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosv14=na.omit(credit$V14)[na.omit(credit$V14)<limiteInferior | na.omit(credit$V14)>limiteSuperior] 
+percAtipicos=100*length(atipicosv14)/length((na.omit(credit$V14)))
+print(paste("El porcentaje de datos atípicos para V14 es = ",percAtipicos))
+```
+
+  Como podemos ver el **porcentaje de valores atípicos** es muy bajo. Por ello, vamos
+  a mantener los datos atípicos intactos para estas variables, ya que no merece
+  la pena tratarlos al ser un porcentaje tan pequeño,pueden representar variabilidad
+  real y natural en los datos. En caso de tratarlos, podríamos perder precisión e información
+  valiosa necesaria por el modelo para aprender sobre situaciones fuera de lo común.
+
+## Variable V8
+
+```{r}
+Q1=quantile(na.omit(credit$V8),0.25)
+Q3=quantile(na.omit(credit$V8),0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosv8=na.omit(credit$V8)[na.omit(credit$V8)<limiteInferior | na.omit(credit$V8)>limiteSuperior] 
+percAtipicos=100*length(atipicosv8)/length((na.omit(credit$V8)))
+print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+```
+
+```{r}
+ggplot(credit, aes(x = V8)) +
+  geom_histogram(bins = 30, fill = "orange", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de V8 original", x = "V8 (original)", y = "Frecuencia")
+
+```
+
+Viendo el histograma podemos comprobar que tenemos una distribución sesgada a la derecha,
+con una larga cola de valores. La mayor concetración de valores se encuenta entre el 0 y el 5,
+aproximadamente. El resto de valores podrían ser considerados como $outliers$.
+Para asegurarnos, realizamos el whisker plot:
+
+```{r}
+ggplot(credit, aes(y = V8)) +
+  geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 16) +
+  labs(title = "Boxplot de V8", y = "V8", x = "") +
+  theme_minimal()
+```
+
+Confirmando lo dicho anteriormente, podemos ver como tenemos una gran cantidad de valores
+fuera de rango por la parte superior del RIC. Este tipo de distorsiones puede tener efectos
+bastante perjudiciales y puede ser muy conveniente eliminar estos posibles $outliers$, como veremos
+más adelante.
+
+## Variable V11
+
+```{r}
+Q1=quantile(na.omit(credit$V11),0.25)
+Q3=quantile(na.omit(credit$V11),0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosV11=na.omit(credit$V11)[na.omit(credit$V11)<limiteInferior | na.omit(credit$V11)>limiteSuperior] 
+percAtipicos=100*length(atipicosV11)/length((na.omit(credit$V11)))
+print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+```
+
+```{r}
+ggplot(credit, aes(x = V11)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de la Variable V11", x = "V11(original)", y = "Frecuencia") +
+  theme_minimal()
+```
+
+Como vemos, la mayor parte de valores se encuentran concentrados en torno al 0. 
+El histograma nos delata como hay bastantes valores fuera de rango.
+Para confirmarlo vemos el whisker plot:
+
+```{r}
+ggplot(credit, aes(y = V11)) +
+  geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 16) +
+  labs(title = "Boxplot de V11", y = "V11", x = "") +
+  theme_minimal()
+```
+ 
+Confirmamos lo dicho anteriormente, podemos ver como hay muchisimos valores fuera del RIC.
+Estos valores más adelante valoraremos su efecto y el tratamiento que le daremos.
+
+## Variable V15
+
+```{r}
+Q1=quantile(na.omit(credit$V15),0.25)
+Q3=quantile(na.omit(credit$V15),0.75)
+RIC=Q3-Q1
+limiteInferior=Q1-1.5*RIC
+limiteSuperior=Q3+1.5*RIC
+atipicosV15=na.omit(credit$V15)[na.omit(credit$V15)<limiteInferior | na.omit(credit$V15)>limiteSuperior] 
+percAtipicos=100*length(atipicosV15)/length((na.omit(credit$V15)))
+print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
+```
+
+```{r}
+ggplot(credit, aes(x = V15)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de la Variable V15", x = "V15", y = "Frecuencia") +
+  theme_minimal()
+```
+
+Al igual que con la variable anterior, la mayor concentración de valores esta en torno
+al 0. Esto nos puede llevar a que las variables tengan una cierta correlación como ya 
+estudiaremos más adelante. Aqui aunque el histograma parezca tener menos datos atípicos
+realmente es la variable que más porcentaje tiene debido a su alta concentración en los valores bajos.
+
+Analizamos el whisker plot:
+
+```{r}
+ggplot(credit, aes(y = V15)) +
+  geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 16) +
+  labs(title = "Boxplot de V15", y = "V15", x = "") +
+  theme_minimal()
+```
+
+Como podemos ver, la caja que representa el RIC es muy fina debido a lo que hemos comentado
+anteriormente, la alta concentración en torno al 0. Este diagrama reafirma una vez más
+lo dicho anteriormente, y representa la gran cantidad de $outliers$ que tiene esta variable.
+Más adelante se tratarán estos valores.
+
+## Tratamiendo de valores nulos
+
+### Variables numéricas
+
+Antes de comenzar, ara tomar medida de cuán serio es el problema de los valores nulos, debemos contar los casos que tienen valores nulos, y lo hacemos con $complete.cases()$.
+
+
+```{r}
+nrow(credit[!complete.cases(credit),])
+```
+
+Tenemos un total de 37 filas, de 690, aproximadamente un 5% de casos. Esto es un
+porcentaje importante que conviene tratar. Aunque no es extremadamente alto, tampoco es despreciable,
+y si no se maneja adecuadamente, podría afectar la calidad del análisis y el rendimiento del modelo.
+
+Antes de aplicar una solución a estos valores, vamos a realizar un estudio de correlaciones.
+La idea es simple. Si uno de los atributos con valores nulos tiene una fuerte correlación con otro, podemos
+aprovechar ese hecho para así generar sustitutos para los valores nulos, mediante una técnica que introduce
+poco sesgo y sigue teniendo un bajo coste computacional.
+
+```{r}
+# Visualización rápida de la matriz de correlación en forma de símbolos
+symnum(cor(credit[, sapply(credit, is.numeric)], use = "complete.obs"))
+
+```
+
+La matriz de correlación simbólica muestra que **no hay correlaciones fuertes** entre las variables en este subconjunto. Dado que todas las correlaciones son bajas, el método de imputación basado en correlación podría no ser efectivo en este caso, ya que no hay ninguna variable que esté claramente relacionada con otra.
+
+En lugar de usar correlaciones, vamos a comprobar si sería posible realizar la sustitución de varibles numéricas
+mediante $medianImpute$ que consiste en reemplazar los valores nulos por la mediana de esa variable.
+
+Cabe destacar que no utlizamos el algoritmo de Clustering Knn ya que este algoritmo modifica los datos y estamos 
+limpiando los datos desconocidos de todo el conjunto de dato por tanto no nos conviene modificar los datos.
+Este proceso de ajuste de los datos será llevado a cabo más adelante para adaptarnos a los modelos usados.
+
+Sabiendo que tenemos valores NA en las columnas numéricas, vamos a utilizar
+el comando de caret $preProcess()$ para generar un objeto que nos permite modificar los datos para 
+facilitar el entrenamiento de modelos. 
+Veamos ahora los comandos para asignar los valores nulos o missing usando $medianImpute$
+
+```{r}
+library(caret)
+library(RANN)
+
+# Crear el objeto de preprocesamiento para imputación de valores nulos usando KNN
+preproc <- preProcess(credit[, sapply(credit, is.numeric)], method = "medianImpute")
+# Aplicar el preprocesamiento para imputar los valores nulos
+credit_num_imputed <- predict(preproc, credit[, sapply(credit, is.numeric)])
+
+# Verificar que no hay valores nulos en el nuevo dataframe
+sum(is.na(credit_num_imputed))
+
+```
+Tras comprobar que el numero de valores NA es 0, comprobamos que nuestro proceso ha tenido éxito.
+
+
+### Variables Categóricas
+
+Para las variables categóricas decidimos imputar valores nulos en variables categóricas usando la moda, se reemplazan los valores nulos con el valor más frecuente de esa variable (moda). Esta técnica es sencilla, rápida y mantiene una distribución similar a la original de los datos.
+
+
+```{r}
+
+credit[, sapply(credit, is.numeric)] <- credit_num_imputed
+
+
+imputar_moda <- function(x) {
+  if (is.factor(x) || is.character(x)) {
+    # Calcular la moda (valor más frecuente)
+    moda <- names(sort(table(x), decreasing = TRUE))[1]
+    # Reemplazar los NA con la moda
+    x[is.na(x)] <- moda
+  }
+  return(x)
+}
+
+credit <- data.frame(lapply(credit, imputar_moda))
+#Comprobar que todo ha ido bien
+nrow(credit[!complete.cases(credit),])
+```
+
+```{r}
+credit[!complete.cases(credit),]
+```
+
+El proceso ha tenido éxito, lo comprobamos ya que obtenemos que la base de datos arreglada
+tiene 0 valores NA.
+
+# Dividiendo datos en Train/Test
+
+Los datos de los que se dispone se deben dividir en dos grupos. Uno para entrenar el sistema
+y otro grupo para hacer una estimación del rendimiento de los modelos entrenados con datos nuevos.
+
+Es importante que el conjunto de test (o de publicación) se mantenga apartado y no se utilice la in-
+formación que contiene para tomar decisiones sobre el entrenamiento puesto que hacerlo implica introducir
+sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es dividir los datos y dejar de un lado
+los datos de test.
+
+```{r}
+credit.trainIdx<-readRDS("credit.trainIdx")
+credit.Datos.Train<-credit[credit.trainIdx,]
+credit.Datos.Test<-credit[-credit.trainIdx,]
+```
+
+Después comprobamos que efectivamente, tenemos 553 observaciones tal y como se dice en el enunciado.
+
+```{r}
+nrow(credit.Datos.Train)
+```
+# Pre-procesado de datos(III): Eliminar predictores correlados o de poca Varianza
+
+Para tomar decisiones sobre el conjunto de datos, vamos a analizar únicamente el 
+conjunto de datos Train, aunque las decisiones tomadas se aplicarán a los conjuntos
+Train y Test.
+
+
+## Eliminar variables con poca varianza
+
+Que una variable tenga poca varianza indica que carece de mucha información para crear distinciones entre
+los datos. Cuando prácticamente todos los ejemplos son iguales en una característica, dicha característica
+dice poco de la generalidad de los individuos.
+Por tanto, vamos a proceder a identificar las variables que tienen escasa varianza para ser
+eliminadas. Para llevar esto a cabo, utilizaremos la función $nearZeroVar()$:
+
+```{r}
+nearZeroVar(credit.Datos.Train)
+```
+Como podemos ver, la funcion nos devuelve **0** por tanto no tenemos ninguna variable
+que encaje en estas características y deba ser eliminada.
+
+## Eliminar variables correladas
+```{r}
+symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]))
+```
+
+Como podemos observar en el grafico, no existen variables númericas con correlación
+por tanto no hay que tratar ninguna variable en este punto del análisis.
+
+# Pre-procesado de datos (IV): Transformando y construyendo variables
+
+hay que crear los datos para usar en diferentes modelos normalizado y sin normalizar ver indice año pasado.
