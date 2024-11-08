@@ -13,7 +13,7 @@
 <meta name="author" content="Gloria Sánchez Alonso" />
 <meta name="author" content="Samuel Avilés Conesa" />
 
-<meta name="date" content="2024-11-05" />
+<meta name="date" content="2024-11-08" />
 
 <title>Proyecto AC</title>
 
@@ -2855,7 +2855,7 @@ border-radius: 0px;
 <h4 class="author">Maria Capilla Zapata</h4>
 <h4 class="author">Gloria Sánchez Alonso</h4>
 <h4 class="author">Samuel Avilés Conesa</h4>
-<h4 class="date">2024-11-05</h4>
+<h4 class="date">2024-11-08</h4>
 
 </div>
 
@@ -3183,9 +3183,9 @@ V3, y V8</strong> como <strong>variables predictoras</strong>
 principales.</p>
 </div>
 </div>
-<div id="pre-procesado-de-datos-ii-tratamiento-de-outliers-y-nulos" class="section level1" number="3">
+<div id="pre-procesado-de-datos-ii-tratamiento-de-outliers" class="section level1" number="3">
 <h1><span class="header-section-number">3</span> Pre-procesado de Datos
-(II): Tratamiento de outliers y nulos</h1>
+(II): Tratamiento de outliers</h1>
 <p>Para continuar, vamos a comenzar con el tratamiento de valores nulos
 y atípicos debido. Vamos a calcular el valor limite superior e inferior
 para considerarlos atípicos. Vamos a repetir el cálculo con todas las
@@ -3320,18 +3320,45 @@ lo que hemos comentado anteriormente, la alta concentración en torno al
 representa la gran cantidad de <span class="math inline">\(outliers\)</span> que tiene esta variable. Más
 adelante se tratarán estos valores.</p>
 </div>
-<div id="tratamiendo-de-valores-nulos" class="section level2" number="3.5">
-<h2><span class="header-section-number">3.5</span> Tratamiendo de
+</div>
+<div id="dividiendo-datos-en-traintest" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Dividiendo datos en
+Train/Test</h1>
+<p>Los datos de los que se dispone se deben dividir en dos grupos. Uno
+para entrenar el sistema y otro grupo para hacer una estimación del
+rendimiento de los modelos entrenados con datos nuevos.</p>
+<p>Es importante que el conjunto de test (o de publicación) se mantenga
+apartado y no se utilice la in- formación que contiene para tomar
+decisiones sobre el entrenamiento puesto que hacerlo implica introducir
+sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es
+dividir los datos y dejar de un lado los datos de test.</p>
+<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" tabindex="-1"></a>credit.trainIdx<span class="ot">&lt;-</span><span class="fu">readRDS</span>(<span class="st">&quot;credit.trainIdx&quot;</span>)</span>
+<span id="cb51-2"><a href="#cb51-2" tabindex="-1"></a>credit.Datos.Train<span class="ot">&lt;-</span>credit[credit.trainIdx,]</span>
+<span id="cb51-3"><a href="#cb51-3" tabindex="-1"></a>credit.Datos.Test<span class="ot">&lt;-</span>credit[<span class="sc">-</span>credit.trainIdx,]</span></code></pre></div>
+<p>Después comprobamos que efectivamente, tenemos 553 observaciones tal
+y como se dice en el enunciado.</p>
+<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" tabindex="-1"></a><span class="fu">nrow</span>(credit.Datos.Train)</span></code></pre></div>
+<pre><code>## [1] 553</code></pre>
+</div>
+<div id="pre-procesado-de-datosiii-eliminar-nulos-predictores-correlados-o-de-poca-varianza" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Pre-procesado de
+datos(III): Eliminar nulos, predictores correlados o de poca
+Varianza</h1>
+<p>Para tomar decisiones sobre el conjunto de datos, vamos a analizar
+únicamente el conjunto de datos Train, aunque las decisiones tomadas se
+aplicarán a los conjuntos Train y Test.</p>
+<div id="tratamiendo-de-valores-nulos" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Tratamiendo de
 valores nulos</h2>
-<div id="variables-numéricas" class="section level3" number="3.5.1">
-<h3><span class="header-section-number">3.5.1</span> Variables
+<div id="variables-numéricas" class="section level3" number="5.1.1">
+<h3><span class="header-section-number">5.1.1</span> Variables
 numéricas</h3>
 <p>Antes de comenzar, ara tomar medida de cuán serio es el problema de
 los valores nulos, debemos contar los casos que tienen valores nulos, y
 lo hacemos con <span class="math inline">\(complete.cases()\)</span>.</p>
-<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" tabindex="-1"></a><span class="fu">nrow</span>(credit[<span class="sc">!</span><span class="fu">complete.cases</span>(credit),])</span></code></pre></div>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" tabindex="-1"></a><span class="fu">nrow</span>(credit.Datos.Train[<span class="sc">!</span><span class="fu">complete.cases</span>(credit.Datos.Train),])</span></code></pre></div>
 <pre><code>## [1] 37</code></pre>
-<p>Tenemos un total de 37 filas, de 690, aproximadamente un 5% de casos.
+<p>Tenemos un total de 37 filas, de 553, aproximadamente un 7% de casos.
 Esto es un porcentaje importante que conviene tratar. Aunque no es
 extremadamente alto, tampoco es despreciable, y si no se maneja
 adecuadamente, podría afectar la calidad del análisis y el rendimiento
@@ -3342,8 +3369,8 @@ valores nulos tiene una fuerte correlación con otro, podemos aprovechar
 ese hecho para así generar sustitutos para los valores nulos, mediante
 una técnica que introduce poco sesgo y sigue teniendo un bajo coste
 computacional.</p>
-<div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" tabindex="-1"></a><span class="co"># Visualización rápida de la matriz de correlación en forma de símbolos</span></span>
-<span id="cb53-2"><a href="#cb53-2" tabindex="-1"></a><span class="fu">symnum</span>(<span class="fu">cor</span>(credit[, <span class="fu">sapply</span>(credit, is.numeric)], <span class="at">use =</span> <span class="st">&quot;complete.obs&quot;</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" tabindex="-1"></a><span class="co"># Visualización rápida de la matriz de correlación en forma de símbolos</span></span>
+<span id="cb56-2"><a href="#cb56-2" tabindex="-1"></a><span class="fu">symnum</span>(<span class="fu">cor</span>(credit.Datos.Train[, <span class="fu">sapply</span>(credit.Datos.Train, is.numeric)], <span class="at">use =</span> <span class="st">&quot;complete.obs&quot;</span>))</span></code></pre></div>
 <pre><code>##     V2 V3 V8 V11 V14 V15
 ## V2  1                   
 ## V3     1                
@@ -3371,47 +3398,47 @@ utilizar el comando de caret <span class="math inline">\(preProcess()\)</span> p
 nos permite modificar los datos para facilitar el entrenamiento de
 modelos. Veamos ahora los comandos para asignar los valores nulos o
 missing usando <span class="math inline">\(medianImpute\)</span></p>
-<div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" tabindex="-1"></a><span class="fu">library</span>(caret)</span></code></pre></div>
+<div class="sourceCode" id="cb58"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" tabindex="-1"></a><span class="fu">library</span>(caret)</span></code></pre></div>
 <pre><code>## Cargando paquete requerido: lattice</code></pre>
-<div class="sourceCode" id="cb57"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" tabindex="-1"></a><span class="fu">library</span>(RANN)</span>
-<span id="cb57-2"><a href="#cb57-2" tabindex="-1"></a></span>
-<span id="cb57-3"><a href="#cb57-3" tabindex="-1"></a><span class="co"># Crear el objeto de preprocesamiento para imputación de valores nulos usando KNN</span></span>
-<span id="cb57-4"><a href="#cb57-4" tabindex="-1"></a>preproc <span class="ot">&lt;-</span> <span class="fu">preProcess</span>(credit[, <span class="fu">sapply</span>(credit, is.numeric)], <span class="at">method =</span> <span class="st">&quot;medianImpute&quot;</span>)</span>
-<span id="cb57-5"><a href="#cb57-5" tabindex="-1"></a><span class="co"># Aplicar el preprocesamiento para imputar los valores nulos</span></span>
-<span id="cb57-6"><a href="#cb57-6" tabindex="-1"></a>credit_num_imputed <span class="ot">&lt;-</span> <span class="fu">predict</span>(preproc, credit[, <span class="fu">sapply</span>(credit, is.numeric)])</span>
-<span id="cb57-7"><a href="#cb57-7" tabindex="-1"></a></span>
-<span id="cb57-8"><a href="#cb57-8" tabindex="-1"></a><span class="co"># Verificar que no hay valores nulos en el nuevo dataframe</span></span>
-<span id="cb57-9"><a href="#cb57-9" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(credit_num_imputed))</span></code></pre></div>
+<div class="sourceCode" id="cb60"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" tabindex="-1"></a><span class="fu">library</span>(RANN)</span>
+<span id="cb60-2"><a href="#cb60-2" tabindex="-1"></a></span>
+<span id="cb60-3"><a href="#cb60-3" tabindex="-1"></a><span class="co"># Crear el objeto de preprocesamiento para imputación de valores nulos usando KNN</span></span>
+<span id="cb60-4"><a href="#cb60-4" tabindex="-1"></a>preproc <span class="ot">&lt;-</span> <span class="fu">preProcess</span>(credit.Datos.Train[, <span class="fu">sapply</span>(credit.Datos.Train, is.numeric)], <span class="at">method =</span> <span class="st">&quot;medianImpute&quot;</span>)</span>
+<span id="cb60-5"><a href="#cb60-5" tabindex="-1"></a><span class="co"># Aplicar el preprocesamiento para imputar los valores nulos</span></span>
+<span id="cb60-6"><a href="#cb60-6" tabindex="-1"></a>credit_num_imputed <span class="ot">&lt;-</span> <span class="fu">predict</span>(preproc, credit.Datos.Train[, <span class="fu">sapply</span>(credit.Datos.Train, is.numeric)])</span>
+<span id="cb60-7"><a href="#cb60-7" tabindex="-1"></a></span>
+<span id="cb60-8"><a href="#cb60-8" tabindex="-1"></a><span class="co"># Verificar que no hay valores nulos en el nuevo dataframe</span></span>
+<span id="cb60-9"><a href="#cb60-9" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(credit_num_imputed))</span></code></pre></div>
 <pre><code>## [1] 0</code></pre>
 <p>Tras comprobar que el numero de valores NA es 0, comprobamos que
 nuestro proceso ha tenido éxito.</p>
 </div>
-<div id="variables-categóricas" class="section level3" number="3.5.2">
-<h3><span class="header-section-number">3.5.2</span> Variables
+<div id="variables-categóricas" class="section level3" number="5.1.2">
+<h3><span class="header-section-number">5.1.2</span> Variables
 Categóricas</h3>
 <p>Para las variables categóricas decidimos imputar valores nulos en
 variables categóricas usando la moda, se reemplazan los valores nulos
 con el valor más frecuente de esa variable (moda). Esta técnica es
 sencilla, rápida y mantiene una distribución similar a la original de
 los datos.</p>
-<div class="sourceCode" id="cb59"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" tabindex="-1"></a>credit[, <span class="fu">sapply</span>(credit, is.numeric)] <span class="ot">&lt;-</span> credit_num_imputed</span>
-<span id="cb59-2"><a href="#cb59-2" tabindex="-1"></a></span>
-<span id="cb59-3"><a href="#cb59-3" tabindex="-1"></a></span>
-<span id="cb59-4"><a href="#cb59-4" tabindex="-1"></a>imputar_moda <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
-<span id="cb59-5"><a href="#cb59-5" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.factor</span>(x) <span class="sc">||</span> <span class="fu">is.character</span>(x)) {</span>
-<span id="cb59-6"><a href="#cb59-6" tabindex="-1"></a>    <span class="co"># Calcular la moda (valor más frecuente)</span></span>
-<span id="cb59-7"><a href="#cb59-7" tabindex="-1"></a>    moda <span class="ot">&lt;-</span> <span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">table</span>(x), <span class="at">decreasing =</span> <span class="cn">TRUE</span>))[<span class="dv">1</span>]</span>
-<span id="cb59-8"><a href="#cb59-8" tabindex="-1"></a>    <span class="co"># Reemplazar los NA con la moda</span></span>
-<span id="cb59-9"><a href="#cb59-9" tabindex="-1"></a>    x[<span class="fu">is.na</span>(x)] <span class="ot">&lt;-</span> moda</span>
-<span id="cb59-10"><a href="#cb59-10" tabindex="-1"></a>  }</span>
-<span id="cb59-11"><a href="#cb59-11" tabindex="-1"></a>  <span class="fu">return</span>(x)</span>
-<span id="cb59-12"><a href="#cb59-12" tabindex="-1"></a>}</span>
-<span id="cb59-13"><a href="#cb59-13" tabindex="-1"></a></span>
-<span id="cb59-14"><a href="#cb59-14" tabindex="-1"></a>credit <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">lapply</span>(credit, imputar_moda))</span>
-<span id="cb59-15"><a href="#cb59-15" tabindex="-1"></a><span class="co">#Comprobar que todo ha ido bien</span></span>
-<span id="cb59-16"><a href="#cb59-16" tabindex="-1"></a><span class="fu">nrow</span>(credit[<span class="sc">!</span><span class="fu">complete.cases</span>(credit),])</span></code></pre></div>
+<div class="sourceCode" id="cb62"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" tabindex="-1"></a>credit.Datos.Train[, <span class="fu">sapply</span>(credit.Datos.Train, is.numeric)] <span class="ot">&lt;-</span> credit_num_imputed</span>
+<span id="cb62-2"><a href="#cb62-2" tabindex="-1"></a></span>
+<span id="cb62-3"><a href="#cb62-3" tabindex="-1"></a></span>
+<span id="cb62-4"><a href="#cb62-4" tabindex="-1"></a>imputar_moda <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb62-5"><a href="#cb62-5" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.factor</span>(x) <span class="sc">||</span> <span class="fu">is.character</span>(x)) {</span>
+<span id="cb62-6"><a href="#cb62-6" tabindex="-1"></a>    <span class="co"># Calcular la moda (valor más frecuente)</span></span>
+<span id="cb62-7"><a href="#cb62-7" tabindex="-1"></a>    moda <span class="ot">&lt;-</span> <span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">table</span>(x), <span class="at">decreasing =</span> <span class="cn">TRUE</span>))[<span class="dv">1</span>]</span>
+<span id="cb62-8"><a href="#cb62-8" tabindex="-1"></a>    <span class="co"># Reemplazar los NA con la moda</span></span>
+<span id="cb62-9"><a href="#cb62-9" tabindex="-1"></a>    x[<span class="fu">is.na</span>(x)] <span class="ot">&lt;-</span> moda</span>
+<span id="cb62-10"><a href="#cb62-10" tabindex="-1"></a>  }</span>
+<span id="cb62-11"><a href="#cb62-11" tabindex="-1"></a>  <span class="fu">return</span>(x)</span>
+<span id="cb62-12"><a href="#cb62-12" tabindex="-1"></a>}</span>
+<span id="cb62-13"><a href="#cb62-13" tabindex="-1"></a></span>
+<span id="cb62-14"><a href="#cb62-14" tabindex="-1"></a>credit.Datos.Train <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">lapply</span>(credit.Datos.Train, imputar_moda))</span>
+<span id="cb62-15"><a href="#cb62-15" tabindex="-1"></a><span class="co">#Comprobar que todo ha ido bien</span></span>
+<span id="cb62-16"><a href="#cb62-16" tabindex="-1"></a><span class="fu">nrow</span>(credit.Datos.Train[<span class="sc">!</span><span class="fu">complete.cases</span>(credit.Datos.Train),])</span></code></pre></div>
 <pre><code>## [1] 0</code></pre>
-<div class="sourceCode" id="cb61"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" tabindex="-1"></a>credit[<span class="sc">!</span><span class="fu">complete.cases</span>(credit),]</span></code></pre></div>
+<div class="sourceCode" id="cb64"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" tabindex="-1"></a>credit.Datos.Train[<span class="sc">!</span><span class="fu">complete.cases</span>(credit.Datos.Train),]</span></code></pre></div>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
 {"columns":[{"label":["V1"],"name":[1],"type":["fct"],"align":["left"]},{"label":["V2"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["V3"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["V4"],"name":[4],"type":["fct"],"align":["left"]},{"label":["V5"],"name":[5],"type":["fct"],"align":["left"]},{"label":["V6"],"name":[6],"type":["fct"],"align":["left"]},{"label":["V7"],"name":[7],"type":["fct"],"align":["left"]},{"label":["V8"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["V9"],"name":[9],"type":["fct"],"align":["left"]},{"label":["V10"],"name":[10],"type":["fct"],"align":["left"]},{"label":["V11"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["V12"],"name":[12],"type":["fct"],"align":["left"]},{"label":["V13"],"name":[13],"type":["fct"],"align":["left"]},{"label":["V14"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["V15"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["V16"],"name":[16],"type":["fct"],"align":["left"]}],"data":[],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
@@ -3421,34 +3448,8 @@ los datos.</p>
 base de datos arreglada tiene 0 valores NA.</p>
 </div>
 </div>
-</div>
-<div id="dividiendo-datos-en-traintest" class="section level1" number="4">
-<h1><span class="header-section-number">4</span> Dividiendo datos en
-Train/Test</h1>
-<p>Los datos de los que se dispone se deben dividir en dos grupos. Uno
-para entrenar el sistema y otro grupo para hacer una estimación del
-rendimiento de los modelos entrenados con datos nuevos.</p>
-<p>Es importante que el conjunto de test (o de publicación) se mantenga
-apartado y no se utilice la in- formación que contiene para tomar
-decisiones sobre el entrenamiento puesto que hacerlo implica introducir
-sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es
-dividir los datos y dejar de un lado los datos de test.</p>
-<div class="sourceCode" id="cb62"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" tabindex="-1"></a>credit.trainIdx<span class="ot">&lt;-</span><span class="fu">readRDS</span>(<span class="st">&quot;credit.trainIdx&quot;</span>)</span>
-<span id="cb62-2"><a href="#cb62-2" tabindex="-1"></a>credit.Datos.Train<span class="ot">&lt;-</span>credit[credit.trainIdx,]</span>
-<span id="cb62-3"><a href="#cb62-3" tabindex="-1"></a>credit.Datos.Test<span class="ot">&lt;-</span>credit[<span class="sc">-</span>credit.trainIdx,]</span></code></pre></div>
-<p>Después comprobamos que efectivamente, tenemos 553 observaciones tal
-y como se dice en el enunciado.</p>
-<div class="sourceCode" id="cb63"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" tabindex="-1"></a><span class="fu">nrow</span>(credit.Datos.Train)</span></code></pre></div>
-<pre><code>## [1] 553</code></pre>
-</div>
-<div id="pre-procesado-de-datosiii-eliminar-predictores-correlados-o-de-poca-varianza" class="section level1" number="5">
-<h1><span class="header-section-number">5</span> Pre-procesado de
-datos(III): Eliminar predictores correlados o de poca Varianza</h1>
-<p>Para tomar decisiones sobre el conjunto de datos, vamos a analizar
-únicamente el conjunto de datos Train, aunque las decisiones tomadas se
-aplicarán a los conjuntos Train y Test.</p>
-<div id="eliminar-variables-con-poca-varianza" class="section level2" number="5.1">
-<h2><span class="header-section-number">5.1</span> Eliminar variables
+<div id="eliminar-variables-con-poca-varianza" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Eliminar variables
 con poca varianza</h2>
 <p>Que una variable tenga poca varianza indica que carece de mucha
 información para crear distinciones entre los datos. Cuando
@@ -3463,8 +3464,8 @@ función <span class="math inline">\(nearZeroVar()\)</span>:</p>
 tanto no tenemos ninguna variable que encaje en estas características y
 deba ser eliminada.</p>
 </div>
-<div id="eliminar-variables-correladas" class="section level2" number="5.2">
-<h2><span class="header-section-number">5.2</span> Eliminar variables
+<div id="eliminar-variables-correladas" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Eliminar variables
 correladas</h2>
 <div class="sourceCode" id="cb67"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" tabindex="-1"></a><span class="fu">symnum</span>(<span class="fu">cor</span>(credit.Datos.Train[, <span class="fu">sapply</span>(credit.Datos.Train, is.numeric)]))</span></code></pre></div>
 <pre><code>##     V2 V3 V8 V11 V14 V15
@@ -3480,6 +3481,12 @@ correladas</h2>
 con correlación por tanto no hay que tratar ninguna variable en este
 punto del análisis.</p>
 </div>
+</div>
+<div id="pre-procesado-de-datos-iv-transformando-y-construyendo-variables" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Pre-procesado de datos
+(IV): Transformando y construyendo variables</h1>
+<p>hay que crear los datos para usar en diferentes modelos normalizado y
+sin normalizar ver indice año pasado.</p>
 </div>
 
 

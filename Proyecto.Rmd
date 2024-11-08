@@ -253,7 +253,7 @@ Las transformaciones sugeridas se deben al sesgo y la amplia escala en V8, V14, 
 
 Este análisis multivariable sugiere que, para mejorar la interpretación y el rendimiento del modelo, sería útil **preprocesar V8,y V15,** así como priorizar **V2, V3, y V8** como **variables predictoras** principales.
 
-# Pre-procesado de Datos (II): Tratamiento de outliers y nulos
+# Pre-procesado de Datos (II): Tratamiento de outliers
 
 Para continuar, vamos a comenzar con el tratamiento de valores nulos y atípicos debido.
 Vamos a calcular el valor limite superior e inferior para considerarlos atípicos. Vamos a repetir el cálculo con todas las variables númericas de la BBDD.
@@ -409,6 +409,34 @@ anteriormente, la alta concentración en torno al 0. Este diagrama reafirma una 
 lo dicho anteriormente, y representa la gran cantidad de $outliers$ que tiene esta variable.
 Más adelante se tratarán estos valores.
 
+# Dividiendo datos en Train/Test
+
+Los datos de los que se dispone se deben dividir en dos grupos. Uno para entrenar el sistema
+y otro grupo para hacer una estimación del rendimiento de los modelos entrenados con datos nuevos.
+
+Es importante que el conjunto de test (o de publicación) se mantenga apartado y no se utilice la in-
+formación que contiene para tomar decisiones sobre el entrenamiento puesto que hacerlo implica introducir
+sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es dividir los datos y dejar de un lado
+los datos de test.
+
+```{r}
+credit.trainIdx<-readRDS("credit.trainIdx")
+credit.Datos.Train<-credit[credit.trainIdx,]
+credit.Datos.Test<-credit[-credit.trainIdx,]
+```
+
+Después comprobamos que efectivamente, tenemos 553 observaciones tal y como se dice en el enunciado.
+
+```{r}
+nrow(credit.Datos.Train)
+```
+
+# Pre-procesado de datos(III): Eliminar nulos, predictores correlados o de poca Varianza
+
+Para tomar decisiones sobre el conjunto de datos, vamos a analizar únicamente el 
+conjunto de datos Train, aunque las decisiones tomadas se aplicarán a los conjuntos
+Train y Test.
+
 ## Tratamiendo de valores nulos
 
 ### Variables numéricas
@@ -417,10 +445,10 @@ Antes de comenzar, ara tomar medida de cuán serio es el problema de los valores
 
 
 ```{r}
-nrow(credit[!complete.cases(credit),])
+nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 ```
 
-Tenemos un total de 37 filas, de 690, aproximadamente un 5% de casos. Esto es un
+Tenemos un total de 37 filas, de 553, aproximadamente un 7% de casos. Esto es un
 porcentaje importante que conviene tratar. Aunque no es extremadamente alto, tampoco es despreciable,
 y si no se maneja adecuadamente, podría afectar la calidad del análisis y el rendimiento del modelo.
 
@@ -431,7 +459,7 @@ poco sesgo y sigue teniendo un bajo coste computacional.
 
 ```{r}
 # Visualización rápida de la matriz de correlación en forma de símbolos
-symnum(cor(credit[, sapply(credit, is.numeric)], use = "complete.obs"))
+symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], use = "complete.obs"))
 
 ```
 
@@ -454,9 +482,9 @@ library(caret)
 library(RANN)
 
 # Crear el objeto de preprocesamiento para imputación de valores nulos usando KNN
-preproc <- preProcess(credit[, sapply(credit, is.numeric)], method = "medianImpute")
+preproc <- preProcess(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], method = "medianImpute")
 # Aplicar el preprocesamiento para imputar los valores nulos
-credit_num_imputed <- predict(preproc, credit[, sapply(credit, is.numeric)])
+credit_num_imputed <- predict(preproc, credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)])
 
 # Verificar que no hay valores nulos en el nuevo dataframe
 sum(is.na(credit_num_imputed))
@@ -472,7 +500,7 @@ Para las variables categóricas decidimos imputar valores nulos en variables cat
 
 ```{r}
 
-credit[, sapply(credit, is.numeric)] <- credit_num_imputed
+credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)] <- credit_num_imputed
 
 
 imputar_moda <- function(x) {
@@ -485,44 +513,17 @@ imputar_moda <- function(x) {
   return(x)
 }
 
-credit <- data.frame(lapply(credit, imputar_moda))
+credit.Datos.Train <- data.frame(lapply(credit.Datos.Train, imputar_moda))
 #Comprobar que todo ha ido bien
-nrow(credit[!complete.cases(credit),])
+nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 ```
 
 ```{r}
-credit[!complete.cases(credit),]
+credit.Datos.Train[!complete.cases(credit.Datos.Train),]
 ```
 
 El proceso ha tenido éxito, lo comprobamos ya que obtenemos que la base de datos arreglada
 tiene 0 valores NA.
-
-# Dividiendo datos en Train/Test
-
-Los datos de los que se dispone se deben dividir en dos grupos. Uno para entrenar el sistema
-y otro grupo para hacer una estimación del rendimiento de los modelos entrenados con datos nuevos.
-
-Es importante que el conjunto de test (o de publicación) se mantenga apartado y no se utilice la in-
-formación que contiene para tomar decisiones sobre el entrenamiento puesto que hacerlo implica introducir
-sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es dividir los datos y dejar de un lado
-los datos de test.
-
-```{r}
-credit.trainIdx<-readRDS("credit.trainIdx")
-credit.Datos.Train<-credit[credit.trainIdx,]
-credit.Datos.Test<-credit[-credit.trainIdx,]
-```
-
-Después comprobamos que efectivamente, tenemos 553 observaciones tal y como se dice en el enunciado.
-
-```{r}
-nrow(credit.Datos.Train)
-```
-# Pre-procesado de datos(III): Eliminar predictores correlados o de poca Varianza
-
-Para tomar decisiones sobre el conjunto de datos, vamos a analizar únicamente el 
-conjunto de datos Train, aunque las decisiones tomadas se aplicarán a los conjuntos
-Train y Test.
 
 
 ## Eliminar variables con poca varianza

@@ -1,4 +1,4 @@
--Explorar 3 variables con análisis monovariable y 1 variable con multivariable
+-Explorar 3 variables con análisis monovariable y 1 variable con multivariable 👍
 -Tratar nulos y atípicos
 	Respóndase a las siguientes preguntas en relación a la preparación de datos
 
