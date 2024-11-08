@@ -89,6 +89,279 @@ summary(credit)
 str(credit)
 ```
 
+## Desanonimización de las variables
+
+Para continuar con el análisis inicial de la BBDD, vamos a intentar "averiguar"
+el posible significado de cada una de las variables.
+
+### V1
+
+La variable V1 se trata de un factor de 2 niveles como podemos ver a continuación:
+```{r}
+levels(credit$V1)
+```
+
+En el contexto de la base de datos (aprobación de crédito) esta variable podría ser
+varias cosas: El sexo del cliente, si está en paro o no... Dado que es binaria.
+Para descartar opciones vamos a hacer una tabla de proporciones a ver como se distribuyen
+los valores.
+
+```{r}
+prop.table(table(credit$V1))*100
+```
+
+Como podemos ver tenemos una clara tendencia al valor 'b'. En el contexto de la BBDD,
+podría deberse al genero. Descartamos la empleabilidad dado que un 30% de personas que
+estén en paro le concedan un préstamo parece demasiado alto. Dado que la base de datos 
+tiene información de los años 90 si que podría encajar que un 70% fueran hombres y un
+30% mujeres. Sin embargo, también podría ser el estado civil, dado que los porcentajes
+encajan bastante bien. Dado que los factores son 'a' y 'b', son dos opciones y en otras
+variables tenemos 't' y 'f', puede deberse a que esta variable es el **género** y las otras
+son columnas booleanas, es decir, verdadero o falso.
+
+### V2:
+Para esta variable numerica, analizamos el histograma para poder averiguar lo que representan. 
+```{r}
+ggplot(credit, aes(x = V2)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de credit$V2", x = "Valores de V2", y = "Frecuencia") +
+  theme_minimal()
+```
+Esta variable podría representar facilmente la edad ya que sigue una distribución normal 
+alrededor de los 20 años. También podría ser la el dinero que tiene,los ingresos...
+La edad podrñia ser importante en base a tomar la decisión de aprobar el credito o no ya que los 
+clientes jovenes suelen tener mas riesgo, los clientes mayores suelen tener mas estabilidad laboral, 
+lo cual seria atractivo para largo plazo.
+También tendría sentido que los clientes más mayores pidan menos creditos y la longevidad es menor y 
+el número de personas en rangos de edad avanzada disminuye. También tiene sentido que los que más pidan
+sean clientes en el rango de edad de entre los 20 y 40 por distintas razones como pedir una hipotéca.
+
+
+###V3
+
+Continuando con V3, para analizar la distribución de valores comenzamos realizando 
+el histograma dado que es una variable numérica:
+
+```{r}
+myhist = ggplot(data=na.omit(credit),aes(V3)) +
+  geom_histogram(col="orange",fill="orange",alpha=0.2) + 
+  labs(title="Histograma para V3", y="Count") 
+myhist = myhist + geom_vline(xintercept = mean(credit$V3),
+                             col="blue",linetype="dashed")
+myhist = myhist + geom_vline(xintercept = median(credit$V3),
+                             col="red",linetype="dashed")
+myhist
+```
+
+Como podemos ver hay una gran acumulación de valores en el rango [0-10], encontramos
+varios valores superiores pero una baja proporción. Dada esta distribución y viendo
+que no tenemos un rango de valores concreto podríamos estar ante varias cosas:
+los ingresos del cliente, la deuda del cliente, los años cotizados que tenga el cliente...
+Es complicado decidirnos por una opción, por tanto hasta este punto del análisis nos quedamos
+entre esas opciones.
+
+### V4
+La variable V4 se trata de un factor de 4 niveles como podemos ver a continuación:
+
+```{r}
+levels(credit$V4)
+```
+
+En el contexto de la base de datos esta variable podría ser
+varias cosas: el sexo del cliente, si está en paro o no... Dado que es binaria.
+Para descartar opciones vamos a hacer una tabla de proporciones a ver como se distribuyen
+los valores.
+
+```{r}
+prop.table(table(credit$V4))*100
+```
+Como podemos ver tenemos una clara tendencia al valor 'u'. En el contexto de la BBDD,
+podría deberse al estado civil. Descartamos la empleabilidad dado que un 30% de personas que
+estén en paro le concedan un préstamo parece demasiado alto. Al ser justo 4 valores nos cuadra
+que sea el estado civil, y que los valores que pueda tomar sean:divorciado, casado, soltero y viudo. 
+Las razones por las que el banco guarda esto podría ser:
+- Estabilidad
+- Medir el riesgo
+- Predecir comportamientos
+
+
+### V5
+
+Continuando con V5, estamos ante un factor por lo que vamos a ver sus niveles
+
+```{r}
+levels(credit$V5)
+```
+
+### V6
+Para comenzar con V6 analizamos sus factores:
+```{r}
+levels(credit$V6)
+```
+
+Vemos que el factor tiene 3 niveles, podríamos estar ante el nivel de estudios
+del cliente o el tipo de empleo que tiene (permanente, temporal, desempleado)...
+Es imposible decidirse ante una de estas pero en torno a esas opciones debe situarse la correcta.
+
+La varible V6 podría estar codificando el estilo de vida financiero del cliente, es decir, si el cliente es ahorrador, conservador, inversor, etc. También puede estar relacionada con   nacionalidad de los clientes o con el estado de residencia de estos ya que la base de datos que estamos tratando es la de un banco en Estados Unidos. Para tener una mejor idea de lo que se refiere vamos a hacer una tabla de frecuencias.
+
+```{r}
+prop.table(table(credit$V6))*100
+```
+
+Ya que hay varios niveles y hay pocos porcentajes que sean altos , nos quedamos con la idea de que V6 corresponde con los estados de residencia de los clientes ya que esos porcentajes altos pueden corresponder a los clientes que pertenecen al mismo estado que la sede de origen del banco y a sus estados más próximos.
+
+### V7
+Respecto a V7, como estamos ante un factor vamos a ver sus niveles:
+```{r}
+levels(credit$V7)
+```
+Como podemos ver, tenemos un factor con bastantes niveles por tanto podríamos
+estar ante una clasificación por tipo de empleo o sector, quizás también podría ser
+un identificador de la sucursal del banco en la que se solicitó el préstamo...
+.
+```{r}
+prop.table(table(credit$V7))*100
+```
+Observando la tabla de proporciones, podemos ver como la gran mayoría se encuentra
+en la 'v' por tanto también podríamos estar ante una variable que determine la 
+nacionalidad del cliente dado que en gran parte estos deben ser del mismo pais que
+el banco.
+
+Hay muchas opciones para esta variable pero esta claro que con esta cantidad de
+opciones no puede ser algo muy importante que pueda guardar el banco.
+
+### V8:
+
+Para está variable, al ser numérica y al poder tomar cualquier valor, lo analizamos en un histograma. Dado que los valores son pequeños, esta variable podría representar los años que lleva trabajando, número de transacciones...
+S
+```{r}
+ggplot(credit, aes(x = V8)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de credit$V8", x = "Valores de V8", y = "Frecuencia") +
+  theme_minimal()
+
+```
+Si asumimos que son los años que llevan trabajando los clientes, la  mayoría de ellos llevan 
+muy poco tiempo, lo que podría suponer riesgo ya que tienen menos estabilidad. Esto podría
+ayudar al banco para decidirse entre darle el credito o no, ya que es un factor importante.
+
+### V9
+
+Procedemos con V9, estamos ante un factor por lo que comenzamos viendo los niveles:
+
+```{r}
+levels(credit$V9)
+```
+
+Estamos ante un factor de 2 niveles de valores 't' y 'f' por tanto es una variable 
+booleana, podría tratarse de si es cliente del banco o no, de si está casado o no...
+
+No merece la pena ver la distribución de valores debido a que no es posible determinar
+con exactitud cual de estas opciones podría ser o incluso podría ser de otro tipo
+dado que hay multitud de opciones.
+
+### V10
+Comenzamos viendo los niveles del factor:
+```{r}
+levels(credit$V10)
+```
+Estamos ante una variable booleana por tanto vamos a analizar la tabla de proporciones
+para ver si podemos decir saber algo más de esta
+
+```{r}
+prop.table(table(credit$V10))*100
+```
+
+Viendo las proporciones, no podemos dejarnos influir por la letra en
+que sea 'f' de false ya que podría estar codificado al revés para confundirnos.
+De todos modos, con estas características poco podemos decir de la variable,
+simplemente podemos dar opciones. Podría ser si tienen un prestamo pendiente o no,
+aunque para ser esta variable no encajaría con la variable que hemos estimado como
+la edad ya que la mayor parte de los clientes serían jóvenes y es dudoso que tengan
+préstamos pendientes antes de pedir uno. Otra opción es si tienen empleo o no, pero
+esta opción es compleja de determinar, como cualquier otra, con solamente estos datos.
+
+### V11
+Estamos ante una variable numérica por tanto vamos a ver el histograma para ver
+la distribución de datos:
+
+```{r}
+ggplot(credit, aes(x = V11)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de la Variable V11", x = "V11(original)", y = "Frecuencia") +
+  theme_minimal()
+```
+
+Observando el histograma, la variable V11 podría representar la cantidad de veces que un solicitante ha tenido un retraso o incumplimiento de pagos, debido a la alta frecuencia en 0 sugiere que muchos solicitantes no tienen historial de impagos, mientras que quienes tienen valores más altos tienen numerosos atrasos. También podríamos decir que se trata de lo contrario, es decir, que se trata del
+número de préstamos ya pagados o la puntuación que le adjunta el banco al cliente.
+
+
+
+### V12
+Esta variable es parecida a V1, ya que sus valores son bastante parecidos. La variable puede tomar dos tipos de valores, ya que es binaria. 
+```{r}
+levels(credit$V12)
+```
+```{r}
+prop.table(table(credit$V12))*100
+```
+Los valores como se puede observar están bastante igualados.Como es una variable booleana podría ser cualquier cosa, entonces no podemos decir con exactitud a qué se refiere. Podría estar entre los opciones comentadas en V1, como  el sexo del cliente, si está en paro o no...
+
+
+### V13
+
+Estamos ante un factor por lo tanto vamos a ver los niveles de este
+
+```{r}
+levels(credit$V13)
+```
+
+Tenemos un factor de tres niveles por lo que de nuevo es complicado determinar
+que podría ser.
+
+### V14
+Esta variable es numerica por lo tanto hacemos el histograma para poder analizarlo mejor:
+```{r}
+ggplot(credit, aes(x = V14)) +
+  geom_histogram(binwidth = 14, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de credit$V14", x = "Valores de V14", y = "Frecuencia") +
+  theme_minimal()
+```
+Como podemos observar,el rango que más se repite está entre el rango de 20 y 30, lo que podría representar
+la edad del cliente, pero no tiene mucho sentido ya que hay muchisimos valores entre 0 y 20, lo cual es 
+dificil. Por lo que podría representar el saldo pendiente,el numero de transacciones,duracion del prestamo en meses.
+
+### V15
+
+La variable es numérica por tanto vamos a ver como se distribuyen los valores;
+
+```{r}
+ggplot(credit, aes(x = V15)) +
+  geom_histogram( fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Histograma de V15", x = "Valores de V15", y = "Frecuencia") +
+  theme_minimal()
+```
+
+A juzgar por las cifras y la dispersión de valores,podríamos estar claramente
+ante los ingresos de los clientes, es sin dudad la variable con mayores cifras
+de las analizadas por tanto, esta opción tiene sentido. Además, estos valores
+deben estar codificados en miles o alguna otra unidad dado que la mayor parte de
+los valores se encuentra en valores bajos y no tiene sentido que los clientes
+tengan tan bajos ingresos.
+
+### V16
+
+Para comenzar vamos a ver los niveles ya que es un factor:
+
+```{r}
+levels(credit$V16)
+```
+
+Para esta variable, hay poco que comentar debido a que en la documentación de la
+BBDD nos dice claramente que es la variable objetivo, podemos intuir que un '+'
+significa aprobado y un '-' significa denegado.
+
 
 
 ##  Análisis univariable
