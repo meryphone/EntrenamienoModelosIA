@@ -685,10 +685,10 @@ principales.
 
 # Pre-procesado de Datos (II): Tratamiento de outliers
 
-Para continuar, vamos a comenzar con el tratamiento de valores nulos y
-atípicos debido. Vamos a calcular el valor limite superior e inferior
+Para continuar, vamos a comenzar con el tratamiento de valorees atípicos.
+Vamos a calcular el valor limite superior e inferior
 para considerarlos atípicos. Vamos a repetir el cálculo con todas las
-variables númericas de la BBDD.
+variables numéricas de la BBDD.
 
 ## Variable V2, V3 y V14
 
@@ -1059,7 +1059,70 @@ Como podemos observar en el grafico, no existen variables númericas con
 una alta correlación por tanto no hay que tratar ninguna variable en
 este punto del análisis.
 
-# Pre-procesado de datos (IV): Transformando y construyendo variables
+# Pre-procesado de datos (IV): Transformando variables
 
-hay que crear los datos para usar en diferentes modelos normalizado y
-sin normalizar ver indice año pasado.
+## Preparando datos de entrenamiento y test para modelos que requieren normalización
+
+### Variables con gran proporción de outliers
+
+Para comenzar, vamos a realizar una normalización robusta para tratar así
+los valores atípicos de las variables con alto porcentaje de $outliers$, analizadas anteriormente. 
+
+
+El cambio de escala se aplica a las variables para normalizarlas y ponerlas todas en una escala común. Esto se hace tanto para mejorar la comprensión sobre su distribución y poder compararlas más fácilmente evitando la distorsión de diferencia de escalas como por el hecho de que de esta manera se evitan problemas con los algoritmos de ajuste de modelos que no posean la propiedad de invarianza al escalado.
+
+Procedemos con el escalado.
+
+```{r}
+credit.Datos.Train.Normalizados=credit.Datos.Train
+# Aplicar preProcess para centrar en la mediana y escalar por el RIC
+preproc <- preProcess(credit.Datos.Train[, c("V8", "V11", "V15")], method = c("center", "scale"), 
+                      center = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, median), 
+                      scale = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, IQR))
+
+credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
+
+# Verificar los resultados
+head(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
+
+```
+
+Como podemos comprobar hemos aplicado el escalado correctamente, el obtener valores
+negativos es completamente normal al aplicar este tipo de escalado. Esto es debido a
+que la normalización robusta consiste en centrar la variable en la mediana y escalar
+mediante el RIC. Por tanto, los valores negativos significan que está el valor por debajo
+de la mediana y los positivos que la supera.
+
+### Variables con baja proporción de outliers
+
+Como hemos analizado previamente, las variables **V2, V3 y V14**$ presentan una distribución
+muy sesgada positivamente. Por lo tanto, vamos a realizar una normalización logarítmica
+para conseguir así reducir el sesgo y comprimir la larga cola de valores que arrastran las
+distribuciones de las variables además de mejorar la simetría de la distribución. 
+
+Aplicamos la normalización logarítmica para las variables mencionadas.
+
+```{r}
+credit.Datos.Train.Normalizados$V2=log1p(credit.Datos.Train.Normalizados$V2)
+credit.Datos.Train.Normalizados$V3=log1p(credit.Datos.Train.Normalizados$V3)
+credit.Datos.Train.Normalizados$V14=log1p(credit.Datos.Train.Normalizados$V14)
+```
+
+### Aplicando cambios a datos de test
+
+A continuación, vamos a aplicar todos los cambios realizados a los datos de test.
+
+```{r}
+credit.Datos.Test.Normalizados=credit.Datos.Test
+credit.Datos.Test.Normalizados$V2=log1p(credit.Datos.Test.Normalizados$V2)
+credit.Datos.Test.Normalizados$V3=log1p(credit.Datos.Test.Normalizados$V3)
+credit.Datos.Test.Normalizados$V14=log1p(credit.Datos.Test.Normalizados$V14)
+
+#Utilizamos la variable 'prepoc' creada anteriormente con los datos de TRAIN para evitar peaking
+
+credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")])
+```
+
+
+## Preparando datos de entrenamiento y test para Ramdom Forest
+
