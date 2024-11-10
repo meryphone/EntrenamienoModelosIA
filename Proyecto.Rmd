@@ -6,7 +6,6 @@ author:
   - "Samuel Avilés Conesa"
 date: "`r Sys.Date()`"
 output: 
-
   html_document:
       toc: true
       toc_float: true
@@ -14,6 +13,9 @@ output:
       highlight: kate
       df_print: paged
       number_sections: true
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -22,37 +24,52 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introdución
 
+En este documento blas bla bla.... CUANDO TERMINEMOS
+
+## Carga de libreriías necesarias
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(GGally)
+library(caret)
+library(RANN)
+```
+
 ## Carga de la base de datos.
 
-Primeramente comenzamos cargando la base de datos, guardando en distintas variables los datos que utilizaremos para el entrenamiento y para probar el modelo. Añadimos la opción "na.strings=?" para sustituir los valores desconocidos
-por NA y poder ser procesados posteriormente.
+Primeramente comenzamos cargando la base de datos, guardando en
+distintas variables los datos que utilizaremos para el entrenamiento y
+para probar el modelo. Añadimos la opción "na.strings=?" para sustituir
+los valores desconocidos por NA y poder ser procesados posteriormente.
 
 ```{r}
 credit = read.table("crx.data", sep = ",",na.strings = "?")
 ```
 
-
 # Preprocesado de datos(I): Tratamiento inicial de la BBDD
 
-
-Primero tenemos que analizar que variables tiene contiene la base de datos
+Primero tenemos que analizar que variables tiene contiene la base de
+datos
 
 ```{r}
 head(credit)
 ```
 
-Observamos al importar la base de datos el tipo de datos de las variables es incorrecto. Antes de
-corregir los tipos de datos vamos a cuantos datos y cuales de ellos, tiene "missing data", para ello
-usaremos **complete.cases()** que veremos más adelante en la sección de tratar los datos nulos:
+Observamos al importar la base de datos el tipo de datos de las
+variables es incorrecto. Antes de corregir los tipos de datos vamos a
+cuantos datos y cuales de ellos, tiene "missing data", para ello
+usaremos **complete.cases()** que veremos más adelante en la sección de
+tratar los datos nulos:
 
 ```{r}
 sum(!complete.cases(credit))
 credit[!complete.cases(credit),]
 ```
 
-Tras ver que efectivamente tenemos datos nulos, procedemos a transformar el tipo de dato
-de las variables tal y como se especifica en la documentación de la base de datos.
-
+Tras ver que efectivamente tenemos datos nulos, procedemos a transformar
+el tipo de dato de las variables tal y como se especifica en la
+documentación de la base de datos.
 
 ```{r}
 credit["V1"] = lapply(credit["V1"], FUN = as.factor)
@@ -74,7 +91,10 @@ credit["V16"] = lapply(credit["V16"], FUN = as.factor)
 head(credit)
 ```
 
-Ahora observamos que la variable V4 solo tiene 3 niveles y debería de tener 4, es decir, hay algún valor que nunca aparece en los datos. Viendo en la descripción de la BBDD podemos ver que debería aparecer el valor "t". Lo añadimos:
+Ahora observamos que la variable V4 solo tiene 3 niveles y debería de
+tener 4, es decir, hay algún valor que nunca aparece en los datos.
+Viendo en la descripción de la BBDD podemos ver que debería aparecer el
+valor "t". Lo añadimos:
 
 ```{r}
 levels(credit$V4)<-c(levels(credit$V4),"t")
@@ -82,7 +102,8 @@ head(credit$V4)
 head(credit)
 ```
 
-Una vez corregido el tipos de datos y añadido las categorías faltantes nos queda la siguiente base de datos:
+Una vez corregido el tipos de datos y añadido las categorías faltantes
+nos queda la siguiente base de datos:
 
 ```{r}
 summary(credit)
@@ -91,56 +112,66 @@ str(credit)
 
 ## Desanonimización de las variables
 
-Para continuar con el análisis inicial de la BBDD, vamos a intentar "averiguar"
-el posible significado de cada una de las variables.
+Para continuar con el análisis inicial de la BBDD, vamos a intentar
+"averiguar" el posible significado de cada una de las variables.
 
 ### V1
 
-La variable V1 se trata de un factor de 2 niveles como podemos ver a continuación:
+La variable V1 se trata de un factor de 2 niveles como podemos ver a
+continuación:
+
 ```{r}
 levels(credit$V1)
 ```
 
-En el contexto de la base de datos (aprobación de crédito) esta variable podría ser
-varias cosas: El sexo del cliente, si está en paro o no... Dado que es binaria.
-Para descartar opciones vamos a hacer una tabla de proporciones a ver como se distribuyen
-los valores.
+En el contexto de la base de datos (aprobación de crédito) esta variable
+podría ser varias cosas: El sexo del cliente, si está en paro o no...
+Dado que es binaria. Para descartar opciones vamos a hacer una tabla de
+proporciones a ver como se distribuyen los valores.
 
 ```{r}
 prop.table(table(credit$V1))*100
 ```
 
-Como podemos ver tenemos una clara tendencia al valor 'b'. En el contexto de la BBDD,
-podría deberse al genero. Descartamos la empleabilidad dado que un 30% de personas que
-estén en paro le concedan un préstamo parece demasiado alto. Dado que la base de datos 
-tiene información de los años 90 si que podría encajar que un 70% fueran hombres y un
-30% mujeres. Sin embargo, también podría ser el estado civil, dado que los porcentajes
-encajan bastante bien. Dado que los factores son 'a' y 'b', son dos opciones y en otras
-variables tenemos 't' y 'f', puede deberse a que esta variable es el **género** y las otras
-son columnas booleanas, es decir, verdadero o falso.
+Como podemos ver tenemos una clara tendencia al valor 'b'. En el
+contexto de la BBDD, podría referirse al genero. Descartamos la
+empleabilidad dado que un 30% de personas que estén en paro le concedan
+un préstamo parece demasiado alto. Dado que la base de datos tiene
+información de los años 90 si que podría encajar que un 70% fueran
+hombres y un 30% mujeres. Sin embargo, también podría ser el estado
+civil, dado que los porcentajes encajan bastante bien. Dado que los
+factores son 'a' y 'b', son dos opciones y en otras variables tenemos
+'t' y 'f', puede deberse a que esta variable es el **género** y las
+otras son columnas booleanas, es decir, verdadero o falso.
 
-### V2:
-Para esta variable numerica, analizamos el histograma para poder averiguar lo que representan. 
+### V2
+
+Para esta variable numerica, analizamos el histograma para poder
+averiguar lo que representan.
+
 ```{r}
 ggplot(credit, aes(x = V2)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de credit$V2", x = "Valores de V2", y = "Frecuencia") +
   theme_minimal()
 ```
-Esta variable podría representar facilmente la edad ya que sigue una distribución normal 
-alrededor de los 20 años. También podría ser la el dinero que tiene,los ingresos...
-La edad podrñia ser importante en base a tomar la decisión de aprobar el credito o no ya que los 
-clientes jovenes suelen tener mas riesgo, los clientes mayores suelen tener mas estabilidad laboral, 
-lo cual seria atractivo para largo plazo.
-También tendría sentido que los clientes más mayores pidan menos creditos y la longevidad es menor y 
-el número de personas en rangos de edad avanzada disminuye. También tiene sentido que los que más pidan
-sean clientes en el rango de edad de entre los 20 y 40 por distintas razones como pedir una hipotéca.
 
+Esta variable podría representar facilmente la edad ya que sigue una
+distribución normal alrededor de los 20 años. También podría ser la el
+dinero que tiene,los ingresos... La edad podrñia ser importante en base
+a tomar la decisión de aprobar el credito o no ya que los clientes
+jovenes suelen tener mas riesgo, los clientes mayores suelen tener mas
+estabilidad laboral, lo cual seria atractivo para largo plazo. También
+tendría sentido que los clientes más mayores pidan menos creditos y la
+longevidad es menor y el número de personas en rangos de edad avanzada
+disminuye. También tiene sentido que los que más pidan sean clientes en
+el rango de edad de entre los 20 y 40 por distintas razones como pedir
+una hipotéca.
 
-###V3
+### V3
 
-Continuando con V3, para analizar la distribución de valores comenzamos realizando 
-el histograma dado que es una variable numérica:
+Continuando con V3, para analizar la distribución de valores comenzamos
+realizando el histograma dado que es una variable numérica:
 
 ```{r}
 myhist = ggplot(data=na.omit(credit),aes(V3)) +
@@ -153,88 +184,123 @@ myhist = myhist + geom_vline(xintercept = median(credit$V3),
 myhist
 ```
 
-Como podemos ver hay una gran acumulación de valores en el rango [0-10], encontramos
-varios valores superiores pero una baja proporción. Dada esta distribución y viendo
-que no tenemos un rango de valores concreto podríamos estar ante varias cosas:
-los ingresos del cliente, la deuda del cliente, los años cotizados que tenga el cliente...
-Es complicado decidirnos por una opción, por tanto hasta este punto del análisis nos quedamos
-entre esas opciones.
+Como podemos ver hay una gran acumulación de valores en el rango [0-10],
+encontramos varios valores superiores pero una baja proporción. Dada
+esta distribución y viendo que no tenemos un rango de valores concreto
+podríamos estar ante varias cosas: los ingresos del cliente, la deuda
+del cliente, los años cotizados que tenga el cliente... Es complicado
+decidirnos por una opción, por tanto hasta este punto del análisis nos
+quedamos entre esas opciones.
 
 ### V4
-La variable V4 se trata de un factor de 4 niveles como podemos ver a continuación:
+
+La variable V4 se trata de un factor de 4 niveles como podemos ver a
+continuación:
 
 ```{r}
 levels(credit$V4)
 ```
 
-En el contexto de la base de datos esta variable podría ser
-varias cosas: el sexo del cliente, si está en paro o no... Dado que es binaria.
-Para descartar opciones vamos a hacer una tabla de proporciones a ver como se distribuyen
-los valores.
+En el contexto de la base de datos esta variable podría ser varias
+cosas: el sexo del cliente, si está en paro o no... Dado que es binaria.
+Para descartar opciones vamos a hacer una tabla de proporciones a ver
+como se distribuyen los valores.
 
 ```{r}
 prop.table(table(credit$V4))*100
 ```
-Como podemos ver tenemos una clara tendencia al valor 'u'. En el contexto de la BBDD,
-podría deberse al estado civil. Descartamos la empleabilidad dado que un 30% de personas que
-estén en paro le concedan un préstamo parece demasiado alto. Al ser justo 4 valores nos cuadra
-que sea el estado civil, y que los valores que pueda tomar sean:divorciado, casado, soltero y viudo. 
-Las razones por las que el banco guarda esto podría ser:
-- Estabilidad
-- Medir el riesgo
-- Predecir comportamientos
 
+Como podemos ver tenemos una clara tendencia al valor 'u'. En el
+contexto de la BBDD, podría deberse al estado civil. Descartamos la
+empleabilidad dado que un 30% de personas que estén en paro le concedan
+un préstamo parece demasiado alto. Al ser justo 4 valores nos cuadra que
+sea el estado civil, y que los valores que pueda tomar sean:divorciado,
+casado, soltero y viudo. Las razones por las que el banco guarda esto
+podría ser: - Estabilidad - Medir el riesgo - Predecir comportamientos
 
 ### V5
 
-Continuando con V5, estamos ante un factor por lo que vamos a ver sus niveles
+Continuando con V5, estamos ante un factor por lo que vamos a ver sus
+niveles:
 
 ```{r}
 levels(credit$V5)
 ```
 
+Vemos que el factor tiene 3 niveles, podríamos estar ante el nivel de
+estudios del cliente o el tipo de empleo que tiene (permanente,
+temporal, desempleado)...
+
+Vamos a ver como se reparten estos:
+
+```{r}
+prop.table(table(credit$V5))
+```
+
+Como podemos ver, el factor tiene 3 niveles pero realmente del valor
+'gg' tiene una proporción muy baja por tanto podríamos sospechar de que
+estamos realmente ante una variable binaria. Al igual que para las demás
+variables binarias no podemos determinar el significado de esta variable
+con exactitud.
+
 ### V6
+
 Para comenzar con V6 analizamos sus factores:
+
 ```{r}
 levels(credit$V6)
 ```
 
-Vemos que el factor tiene 3 niveles, podríamos estar ante el nivel de estudios
-del cliente o el tipo de empleo que tiene (permanente, temporal, desempleado)...
-Es imposible decidirse ante una de estas pero en torno a esas opciones debe situarse la correcta.
-
-La varible V6 podría estar codificando el estilo de vida financiero del cliente, es decir, si el cliente es ahorrador, conservador, inversor, etc. También puede estar relacionada con   nacionalidad de los clientes o con el estado de residencia de estos ya que la base de datos que estamos tratando es la de un banco en Estados Unidos. Para tener una mejor idea de lo que se refiere vamos a hacer una tabla de frecuencias.
+La varible V6 podría estar codificando el estilo de vida financiero del
+cliente, es decir, si el cliente es ahorrador, conservador, inversor,
+etc. También puede estar relacionada con nacionalidad de los clientes o
+con el estado de residencia de estos ya que la base de datos que estamos
+tratando es la de un banco en Estados Unidos. Para tener una mejor idea
+de lo que se refiere vamos a hacer una tabla de frecuencias.
 
 ```{r}
 prop.table(table(credit$V6))*100
 ```
 
-Ya que hay varios niveles y hay pocos porcentajes que sean altos , nos quedamos con la idea de que V6 corresponde con los estados de residencia de los clientes ya que esos porcentajes altos pueden corresponder a los clientes que pertenecen al mismo estado que la sede de origen del banco y a sus estados más próximos.
+Ya que hay varios niveles y hay pocos porcentajes que sean altos , nos
+quedamos con la idea de que V6 corresponde con los estados de residencia
+de los clientes ya que esos porcentajes altos pueden corresponder a los
+clientes que pertenecen al mismo estado que la sede de origen del banco
+y a sus estados más próximos.
 
 ### V7
+
 Respecto a V7, como estamos ante un factor vamos a ver sus niveles:
+
 ```{r}
 levels(credit$V7)
 ```
-Como podemos ver, tenemos un factor con bastantes niveles por tanto podríamos
-estar ante una clasificación por tipo de empleo o sector, quizás también podría ser
-un identificador de la sucursal del banco en la que se solicitó el préstamo...
-.
+
+Como podemos ver, tenemos un factor con bastantes niveles por tanto
+podríamos estar ante una clasificación por tipo de empleo o sector,
+quizás también podría ser un identificador de la sucursal del banco en
+la que se solicitó el préstamo... .
+
 ```{r}
 prop.table(table(credit$V7))*100
 ```
-Observando la tabla de proporciones, podemos ver como la gran mayoría se encuentra
-en la 'v' por tanto también podríamos estar ante una variable que determine la 
-nacionalidad del cliente dado que en gran parte estos deben ser del mismo pais que
+
+Observando la tabla de proporciones, podemos ver como la gran mayoría se
+encuentra en la 'v' por tanto también podríamos estar ante una variable
+que determine la nacionalidad del cliente dado que en gran parte estos
+deben ser del mismo pais que el banco.
+
+Hay muchas opciones para esta variable pero esta claro que con esta
+cantidad de opciones no puede ser algo muy importante que pueda guardar
 el banco.
 
-Hay muchas opciones para esta variable pero esta claro que con esta cantidad de
-opciones no puede ser algo muy importante que pueda guardar el banco.
+### V8
 
-### V8:
+Para está variable, al ser numérica y al poder tomar cualquier valor, lo
+analizamos en un histograma. Dado que los valores son pequeños, esta
+variable podría representar los años que lleva trabajando, número de
+transacciones... S
 
-Para está variable, al ser numérica y al poder tomar cualquier valor, lo analizamos en un histograma. Dado que los valores son pequeños, esta variable podría representar los años que lleva trabajando, número de transacciones...
-S
 ```{r}
 ggplot(credit, aes(x = V8)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
@@ -242,49 +308,59 @@ ggplot(credit, aes(x = V8)) +
   theme_minimal()
 
 ```
-Si asumimos que son los años que llevan trabajando los clientes, la  mayoría de ellos llevan 
-muy poco tiempo, lo que podría suponer riesgo ya que tienen menos estabilidad. Esto podría
-ayudar al banco para decidirse entre darle el credito o no, ya que es un factor importante.
+
+Si asumimos que son los años que llevan trabajando los clientes, la
+mayoría de ellos llevan muy poco tiempo, lo que podría suponer riesgo ya
+que tienen menos estabilidad. Esto podría ayudar al banco para decidirse
+entre darle el credito o no, ya que es un factor importante.
 
 ### V9
 
-Procedemos con V9, estamos ante un factor por lo que comenzamos viendo los niveles:
+Procedemos con V9, estamos ante un factor por lo que comenzamos viendo
+los niveles:
 
 ```{r}
 levels(credit$V9)
 ```
 
-Estamos ante un factor de 2 niveles de valores 't' y 'f' por tanto es una variable 
-booleana, podría tratarse de si es cliente del banco o no, de si está casado o no...
+Estamos ante un factor de 2 niveles de valores 't' y 'f' por tanto es
+una variable booleana, podría tratarse de si es cliente del banco o no,
+de si está casado o no...
 
-No merece la pena ver la distribución de valores debido a que no es posible determinar
-con exactitud cual de estas opciones podría ser o incluso podría ser de otro tipo
-dado que hay multitud de opciones.
+No merece la pena ver la distribución de valores debido a que no es
+posible determinar con exactitud cual de estas opciones podría ser o
+incluso podría ser de otro tipo dado que hay multitud de opciones.
 
 ### V10
+
 Comenzamos viendo los niveles del factor:
+
 ```{r}
 levels(credit$V10)
 ```
-Estamos ante una variable booleana por tanto vamos a analizar la tabla de proporciones
-para ver si podemos decir saber algo más de esta
+
+Estamos ante una variable booleana por tanto vamos a analizar la tabla
+de proporciones para ver si podemos decir saber algo más de esta
 
 ```{r}
 prop.table(table(credit$V10))*100
 ```
 
-Viendo las proporciones, no podemos dejarnos influir por la letra en
-que sea 'f' de false ya que podría estar codificado al revés para confundirnos.
-De todos modos, con estas características poco podemos decir de la variable,
-simplemente podemos dar opciones. Podría ser si tienen un prestamo pendiente o no,
-aunque para ser esta variable no encajaría con la variable que hemos estimado como
-la edad ya que la mayor parte de los clientes serían jóvenes y es dudoso que tengan
-préstamos pendientes antes de pedir uno. Otra opción es si tienen empleo o no, pero
-esta opción es compleja de determinar, como cualquier otra, con solamente estos datos.
+Viendo las proporciones, no podemos dejarnos influir por la letra en que
+sea 'f' de false ya que podría estar codificado al revés para
+confundirnos. De todos modos, con estas características poco podemos
+decir de la variable, simplemente podemos dar opciones. Podría ser si
+tienen un prestamo pendiente o no, aunque para ser esta variable no
+encajaría con la variable que hemos estimado como la edad ya que la
+mayor parte de los clientes serían jóvenes y es dudoso que tengan
+préstamos pendientes antes de pedir uno. Otra opción es si tienen empleo
+o no, pero esta opción es compleja de determinar, como cualquier otra,
+con solamente estos datos.
 
 ### V11
-Estamos ante una variable numérica por tanto vamos a ver el histograma para ver
-la distribución de datos:
+
+Estamos ante una variable numérica por tanto vamos a ver el histograma
+para ver la distribución de datos:
 
 ```{r}
 ggplot(credit, aes(x = V11)) +
@@ -293,21 +369,32 @@ ggplot(credit, aes(x = V11)) +
   theme_minimal()
 ```
 
-Observando el histograma, la variable V11 podría representar la cantidad de veces que un solicitante ha tenido un retraso o incumplimiento de pagos, debido a la alta frecuencia en 0 sugiere que muchos solicitantes no tienen historial de impagos, mientras que quienes tienen valores más altos tienen numerosos atrasos. También podríamos decir que se trata de lo contrario, es decir, que se trata del
-número de préstamos ya pagados o la puntuación que le adjunta el banco al cliente.
-
-
+Observando el histograma, la variable V11 podría representar la cantidad
+de veces que un solicitante ha tenido un retraso o incumplimiento de
+pagos, debido a la alta frecuencia en 0 sugiere que muchos solicitantes
+no tienen historial de impagos, mientras que quienes tienen valores más
+altos tienen numerosos atrasos. También podríamos decir que se trata de
+lo contrario, es decir, que se trata del número de préstamos ya pagados
+o la puntuación que le adjunta el banco al cliente.
 
 ### V12
-Esta variable es parecida a V1, ya que sus valores son bastante parecidos. La variable puede tomar dos tipos de valores, ya que es binaria. 
+
+Esta variable es parecida a V1, ya que sus valores son bastante
+parecidos. La variable puede tomar dos tipos de valores, ya que es
+binaria.
+
 ```{r}
 levels(credit$V12)
 ```
+
 ```{r}
 prop.table(table(credit$V12))*100
 ```
-Los valores como se puede observar están bastante igualados.Como es una variable booleana podría ser cualquier cosa, entonces no podemos decir con exactitud a qué se refiere. Podría estar entre los opciones comentadas en V1, como  el sexo del cliente, si está en paro o no...
 
+Los valores como se puede observar están bastante igualados.Como es una
+variable booleana podría ser cualquier cosa, entonces no podemos decir
+con exactitud a qué se refiere. Podría estar entre los opciones
+comentadas en V1, como el sexo del cliente, si está en paro o no...
 
 ### V13
 
@@ -317,24 +404,37 @@ Estamos ante un factor por lo tanto vamos a ver los niveles de este
 levels(credit$V13)
 ```
 
-Tenemos un factor de tres niveles por lo que de nuevo es complicado determinar
-que podría ser.
+Tenemos un factor de tres niveles por lo que de nuevo es complicado
+determinar que podría ser.
 
 ### V14
-Esta variable es numerica por lo tanto hacemos el histograma para poder analizarlo mejor:
+
+Esta variable es numerica por lo tanto hacemos el histograma para poder
+analizarlo mejor:
+
 ```{r}
 ggplot(credit, aes(x = V14)) +
   geom_histogram(binwidth = 14, fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de credit$V14", x = "Valores de V14", y = "Frecuencia") +
   theme_minimal()
 ```
-Como podemos observar,el rango que más se repite está entre el rango de 20 y 30, lo que podría representar
-la edad del cliente, pero no tiene mucho sentido ya que hay muchisimos valores entre 0 y 20, lo cual es 
-dificil. Por lo que podría representar el saldo pendiente,el numero de transacciones,duracion del prestamo en meses.
+
+Como podemos ver, la mayoría de los valores se encuentran con
+frecuencias altas,
+viendo este histograma y suponiendo el contexto de la BBDD de un banco,
+podríamos
+suponer que esta variable se refiere a la oficina en la que el cliente
+abrió su
+cuenta o quizás su código postal. Los valores aislados que encontramos
+podría
+tratarse perfectamente de ruido en los datos, esto lo analizaremos más
+adelante
+en la sección correspondiente.
 
 ### V15
 
-La variable es numérica por tanto vamos a ver como se distribuyen los valores;
+La variable es numérica por tanto vamos a ver como se distribuyen los
+valores;
 
 ```{r}
 ggplot(credit, aes(x = V15)) +
@@ -343,12 +443,13 @@ ggplot(credit, aes(x = V15)) +
   theme_minimal()
 ```
 
-A juzgar por las cifras y la dispersión de valores,podríamos estar claramente
-ante los ingresos de los clientes, es sin dudad la variable con mayores cifras
-de las analizadas por tanto, esta opción tiene sentido. Además, estos valores
-deben estar codificados en miles o alguna otra unidad dado que la mayor parte de
-los valores se encuentra en valores bajos y no tiene sentido que los clientes
-tengan tan bajos ingresos.
+A juzgar por las cifras y la dispersión de valores,podríamos estar
+claramente ante los ingresos de los clientes, es sin dudad la variable
+con mayores cifras de las analizadas por tanto, esta opción tiene
+sentido. Además, estos valores deben estar codificados en miles o alguna
+otra unidad dado que la mayor parte de los valores se encuentra en
+valores bajos y no tiene sentido que los clientes tengan tan bajos
+ingresos.
 
 ### V16
 
@@ -358,13 +459,12 @@ Para comenzar vamos a ver los niveles ya que es un factor:
 levels(credit$V16)
 ```
 
-Para esta variable, hay poco que comentar debido a que en la documentación de la
-BBDD nos dice claramente que es la variable objetivo, podemos intuir que un '+'
-significa aprobado y un '-' significa denegado.
+Para esta variable, hay poco que comentar debido a que en la
+documentación de la BBDD nos dice claramente que es la variable
+objetivo, podemos intuir que un '+' significa aprobado y un '-'
+significa denegado.
 
-
-
-##  Análisis univariable
+## Análisis univariable
 
 ### Análisis V2
 
@@ -372,21 +472,30 @@ significa aprobado y un '-' significa denegado.
 summary(credit$V2)
 ```
 
+-   **Rango de valores**: La variable `V2` tiene un rango bastante
+    amplio, con valores que van desde 13.75 hasta 80.25.
 
-- **Rango de valores**: La variable `V2` tiene un rango bastante amplio, con valores que van desde 13.75 hasta 80.25.
+-   **Distribución de los datos**:
 
-- **Distribución de los datos**:
+-   La **media** (31.57) está algo cerca de la **mediana** (28.46), lo
+    que sugiere una distribución relativamente simétrica pero con una
+    ligera tendencia hacia valores mayores, especialmente considerando
+    que el máximo es bastante más alto que el tercer cuartil.
 
-- La **media** (31.57) está algo cerca de la **mediana** (28.46), lo que sugiere una distribución relativamente simétrica pero con una ligera tendencia hacia valores mayores, especialmente considerando que el máximo es bastante más alto que el tercer cuartil.
+-   **Cuartiles**: La diferencia entre el primer cuartil (22.60) y el
+    tercer cuartil (38.23) indica que el 50% intermedio de los valores
+    de `V2` se encuentra en un rango moderado, entre 22.60 y 38.23.
+    Posibles valores atípicos:
 
-- **Cuartiles**: La diferencia entre el primer cuartil (22.60) y el tercer cuartil (38.23) indica que el 50% intermedio de los valores de `V2` se encuentra en un rango moderado, entre 22.60 y 38.23.
-Posibles valores atípicos:
-- Dado que el máximo (80.25) está bastante alejado de la mediana (28.46) y del tercer cuartil (38.23), esto podría indicar la presencia de valores atípicos en el extremo superior de la distribución.
+-   Dado que el máximo (80.25) está bastante alejado de la mediana
+    (28.46) y del tercer cuartil (38.23), esto podría indicar la
+    presencia de valores atípicos en el extremo superior de la
+    distribución.
 
-Para estar seguros de la distribución que sigue v2, creamos un histograma de dicha variable:
+Para estar seguros de la distribución que sigue v2, creamos un
+histograma de dicha variable:
 
 ```{r}
-library(ggplot2)
 myhist = ggplot(data=na.omit(credit),aes(V2)) +
   geom_histogram(col="orange",fill="orange",alpha=0.2) + 
   labs(title="Histograma para V2", y="Count") 
@@ -397,9 +506,14 @@ myhist = myhist + geom_vline(xintercept = median(credit$V2),
 myhist
 ```
 
-La distribución es **asimétrica a la derecha** o **sesgada positivamente,** como se había inferido anteriormente. La mayoría de los valores están en el rango bajo (de 15 a 40), y solo unos pocos valores están en el rango superior.
+La distribución es **asimétrica a la derecha** o **sesgada
+positivamente,** como se había inferido anteriormente. La mayoría de los
+valores están en el rango bajo (de 15 a 40), y solo unos pocos valores
+están en el rango superior.
 
-Hay algunos valores dispersos hacia la derecha que elevan el promedio, lo que sugiere que existen **valores atípicos** o extremos en el extremo superior.
+Hay algunos valores dispersos hacia la derecha que elevan el promedio,
+lo que sugiere que existen **valores atípicos** o extremos en el extremo
+superior.
 
 ```{r}
 myplot = ggplot(data=na.omit(credit),aes(sample=V2)) +
@@ -410,28 +524,47 @@ myplot = ggplot(data=na.omit(credit),aes(sample=V2)) +
 myplot
 ```
 
-El gráfico Q-Q muestra cómo se distribuyen los datos en comparación con una **distribución normal teórica**.
+El gráfico Q-Q muestra cómo se distribuyen los datos en comparación con
+una **distribución normal teórica**.
 
-- La curva de puntos se desvía hacia arriba en el extremo derecho, lo que confirma el **sesgo a la derecha** (positivamente sesgado). Los valores en el extremo superior no siguen la línea diagonal, indicando que hay algunos valores altos que se desvían de la normalidad.
+-   La curva de puntos se desvía hacia arriba en el extremo derecho, lo
+    que confirma el **sesgo a la derecha** (positivamente sesgado). Los
+    valores en el extremo superior no siguen la línea diagonal,
+    indicando que hay algunos valores altos que se desvían de la
+    normalidad.
 
-- La parte inferior del gráfico muestra algunos puntos ligeramente por debajo de la línea, lo que indica que la distribución no es perfectamente simétrica en esa zona, aunque el sesgo es más pronunciado hacia la derecha.
+-   La parte inferior del gráfico muestra algunos puntos ligeramente por
+    debajo de la línea, lo que indica que la distribución no es
+    perfectamente simétrica en esa zona, aunque el sesgo es más
+    pronunciado hacia la derecha.
 
 ### Análisis de V3
+
 ```{r}
 summary(credit$V3)
 ```
 
 Características de nuestros datos:
 
-- La media de esta variable, como se puede observar 4.759, es mayor que la mediana, que es 2.750, lo que indica que es una distribución sesgada hacia la derecha (algunos de los valores que son mas altos están haciendo que la media aumente).
+-   La media de esta variable, como se puede observar 4.759, es mayor
+    que la mediana, que es 2.750, lo que indica que es una distribución
+    sesgada hacia la derecha (algunos de los valores que son mas altos
+    están haciendo que la media aumente).
 
-- Los valores de esta variable se encuentran en un rango entre 0(min) y 28(max).
+-   Los valores de esta variable se encuentran en un rango entre 0(min)
+    y 28(max).
 
-- El primer cuartil(1) y el tercer cuartil(77.207) indican que la mayoría de los datos se encuentran entre esos valores. Respecto a los valores atipicos, se nota que existen ya que el valor mas alto que es 28 supera de forma significativa el tercer cuartil.
+-   El primer cuartil(1) y el tercer cuartil(77.207) indican que la
+    mayoría de los datos se encuentran entre esos valores. Respecto a
+    los valores atipicos, se nota que existen ya que el valor mas alto
+    que es 28 supera de forma significativa el tercer cuartil.
 
-- La mayoría de los datos de V3 parecen concentrarse en valores relativamente bajos, con unos pocos valores mucho mayores que podrían ser considerados outliers o valores extremos.
+-   La mayoría de los datos de V3 parecen concentrarse en valores
+    relativamente bajos, con unos pocos valores mucho mayores que
+    podrían ser considerados outliers o valores extremos.
 
-    Para confirmar los valores atípicos y como se distribuyen los datos en la variable representamos los valores en el histograma:
+    Para confirmar los valores atípicos y como se distribuyen los datos
+    en la variable representamos los valores en el histograma:
 
 ```{r}
 myhist=ggplot(data=credit, aes(x = V3)) +
@@ -449,7 +582,8 @@ myhist <- myhist + geom_vline(xintercept = median(credit$V3),
 myhist
 ```
 
-Para poder intuir si una muestra sigue una determinada distribución estadística se pueden usar los diagramas del tipo Q−Q.
+Para poder intuir si una muestra sigue una determinada distribución
+estadística se pueden usar los diagramas del tipo Q−Q.
 
 ```{r}
 ggplot(credit, aes(sample = V3)) +
@@ -464,11 +598,16 @@ ggplot(credit, aes(sample = V3)) +
 summary(credit$V8)
 ```
 
-Como podemos observar en el resumen de la variable, la media es bastante superior a la mediana esto es debido a los valores atípicos, también lo podemos observar en el valor máximo que es 28.50. 
+Como podemos observar en el resumen de la variable, la media es bastante
+superior a la mediana esto es debido a los valores atípicos, también lo
+podemos observar en el valor máximo que es 28.50.
 
-También podemos ver en los cuartiles como nos anuncian que hay muchos datos atípicos ya que los cuartiles están     cercanos a la media y a la mediana pero el valor máximo es muy dispar. 
+También podemos ver en los cuartiles como nos anuncian que hay muchos
+datos atípicos ya que los cuartiles están cercanos a la media y a la
+mediana pero el valor máximo es muy dispar.
 
-Para poder ver como se distribuyen los datos en nuestra variable creamos los siguientes plots:
+Para poder ver como se distribuyen los datos en nuestra variable creamos
+los siguientes plots:
 
 ```{r}
 myhist = ggplot(data=credit, aes(x = V8)) +
@@ -499,37 +638,57 @@ ggplot(data = credit, aes(sample = V8)) +
 
 ```
 
-Como podemos observar en el histograma estamos ante una distribución asimétrica positiva, sesgada a la derecha, ya  que la mayor parte de los datos se encuentran en valores más cercanos a 0 mientras que los valores más altos son     menos frecuentes.
+Como podemos observar en el histograma estamos ante una distribución
+asimétrica positiva, sesgada a la derecha, ya que la mayor parte de los
+datos se encuentran en valores más cercanos a 0 mientras que los valores
+más altos son menos frecuentes.
 
-Aunque la mayoría de los datos se encuentran en valores bajos, hay una cola larga en el extremo derecho del          histograma hasta valores cercanos a 30, estos valores atípicos sería necesario limpiarlos por que ensucian la        muestra.
+Aunque la mayoría de los datos se encuentran en valores bajos, hay una
+cola larga en el extremo derecho del histograma hasta valores cercanos a
+30, estos valores atípicos sería necesario limpiarlos por que ensucian
+la muestra.
 
-A su vez el diagrama QQ nos reafirma lo analizado anteriormente mostrando claramente como para valores mas  altos    los datos se alejan de la distribución teórica normal representada por la recta.
+A su vez el diagrama QQ nos reafirma lo analizado anteriormente
+mostrando claramente como para valores mas altos los datos se alejan de
+la distribución teórica normal representada por la recta.
 
 ## Analisis multivariable
 
 ```{r}
 # Matriz de dispersión para analizar la relación entre V2, V3, V8 y V16
-library(GGally)
 ggpairs(na.omit(credit), columns = c("V2", "V3", "V8","V14","V15", "V16"),aes(color = V16, alpha = 0.6), title = "Análisis Multivariable de V2 V3 V8 V4 Y V15")
 
 ```
 
+Se ha coloreado el gráfico mediante la variable categórica V16 la cual
+determina si la compra fue aprobada o no.
 
-Se ha coloreado el gráfico mediante la variable categórica V16 la cual determina si la compra fue
-aprobada o no.
+Las variables mas útiles para el modelo pueden ser **V2, V8, y V3** ya
+que parecen ser las más **prometedoras**, debido a que muestran ciertas
+diferencias en la distribución de las clases de V16 y tienen
+correlaciones moderadas entre sí.
 
-Las variables mas útiles para el modelo pueden ser **V2, V8, y V3** ya que parecen ser las más **prometedoras**, debido a que muestran ciertas diferencias en la distribución de las clases de V16 y tienen correlaciones moderadas entre sí.
+Las variables potencialmente problemáticas son V14 y V15 ya que tienen
+mucha dispersión y valores extremos, especialmente V15, lo cual podría
+requerir tratamiento adicional, como transformación logarítmica o
+normalización.
 
-Las variables potencialmente problemáticas son V14 y V15 ya que tienen mucha dispersión y valores extremos, especialmente V15, lo cual podría requerir tratamiento adicional, como transformación logarítmica o normalización.
+Las transformaciones sugeridas se deben al sesgo y la amplia escala en
+V8, V14, y V15, estas variables podrían beneficiarse de una
+transformación logarítmica o raíz cuadrada para reducir la dispersión y
+mejorar su manejo en el modelo.
 
-Las transformaciones sugeridas se deben al sesgo y la amplia escala en V8, V14, y V15, estas variables podrían beneficiarse de una transformación logarítmica o raíz cuadrada para reducir la dispersión y mejorar su manejo en el modelo.
-
-Este análisis multivariable sugiere que, para mejorar la interpretación y el rendimiento del modelo, sería útil **preprocesar V8,y V15,** así como priorizar **V2, V3, y V8** como **variables predictoras** principales.
+Este análisis multivariable sugiere que, para mejorar la interpretación
+y el rendimiento del modelo, sería útil **preprocesar V8,y V15,** así
+como priorizar **V2, V3, y V8** como **variables predictoras**
+principales.
 
 # Pre-procesado de Datos (II): Tratamiento de outliers
 
-Para continuar, vamos a comenzar con el tratamiento de valores nulos y atípicos debido.
-Vamos a calcular el valor limite superior e inferior para considerarlos atípicos. Vamos a repetir el cálculo con todas las variables númericas de la BBDD.
+Para continuar, vamos a comenzar con el tratamiento de valores nulos y
+atípicos debido. Vamos a calcular el valor limite superior e inferior
+para considerarlos atípicos. Vamos a repetir el cálculo con todas las
+variables númericas de la BBDD.
 
 ## Variable V2, V3 y V14
 
@@ -544,6 +703,7 @@ percAtipicos=100*length(atipicosv2)/length((na.omit(credit$V2)))
 print(paste("El porcentaje de datos atípicos para V2 es = ",percAtipicos))
 
 ```
+
 ```{r}
 Q1=quantile(na.omit(credit$V3),0.25)
 Q3=quantile(na.omit(credit$V3),0.75)
@@ -566,11 +726,13 @@ percAtipicos=100*length(atipicosv14)/length((na.omit(credit$V14)))
 print(paste("El porcentaje de datos atípicos para V14 es = ",percAtipicos))
 ```
 
-  Como podemos ver el **porcentaje de valores atípicos** es muy bajo. Por ello, vamos
-  a mantener los datos atípicos intactos para estas variables, ya que no merece
-  la pena tratarlos al ser un porcentaje tan pequeño,pueden representar variabilidad
-  real y natural en los datos. En caso de tratarlos, podríamos perder precisión e información
-  valiosa necesaria por el modelo para aprender sobre situaciones fuera de lo común.
+Como podemos ver el **porcentaje de valores atípicos** es muy bajo. Por
+ello, vamos a mantener los datos atípicos intactos para estas variables,
+ya que no merece la pena tratarlos al ser un porcentaje tan
+pequeño,pueden representar variabilidad real y natural en los datos. En
+caso de tratarlos, podríamos perder precisión e información valiosa
+necesaria por el modelo para aprender sobre situaciones fuera de lo
+común.
 
 ## Variable V8
 
@@ -592,10 +754,11 @@ ggplot(credit, aes(x = V8)) +
 
 ```
 
-Viendo el histograma podemos comprobar que tenemos una distribución sesgada a la derecha,
-con una larga cola de valores. La mayor concetración de valores se encuenta entre el 0 y el 5,
-aproximadamente. El resto de valores podrían ser considerados como $outliers$.
-Para asegurarnos, realizamos el whisker plot:
+Viendo el histograma podemos comprobar que tenemos una distribución
+sesgada a la derecha, con una larga cola de valores. La mayor
+concetración de valores se encuenta entre el 0 y el 5, aproximadamente.
+El resto de valores podrían ser considerados como $outliers$. Para
+asegurarnos, realizamos el whisker plot:
 
 ```{r}
 ggplot(credit, aes(y = V8)) +
@@ -604,10 +767,11 @@ ggplot(credit, aes(y = V8)) +
   theme_minimal()
 ```
 
-Confirmando lo dicho anteriormente, podemos ver como tenemos una gran cantidad de valores
-fuera de rango por la parte superior del RIC. Este tipo de distorsiones puede tener efectos
-bastante perjudiciales y puede ser muy conveniente eliminar estos posibles $outliers$, como veremos
-más adelante.
+Confirmando lo dicho anteriormente, podemos ver como tenemos una gran
+cantidad de valores fuera de rango por la parte superior del RIC. Este
+tipo de distorsiones puede tener efectos bastante perjudiciales y puede
+ser muy conveniente eliminar estos posibles $outliers$, como veremos más
+adelante.
 
 ## Variable V11
 
@@ -629,9 +793,9 @@ ggplot(credit, aes(x = V11)) +
   theme_minimal()
 ```
 
-Como vemos, la mayor parte de valores se encuentran concentrados en torno al 0. 
-El histograma nos delata como hay bastantes valores fuera de rango.
-Para confirmarlo vemos el whisker plot:
+Como vemos, la mayor parte de valores se encuentran concentrados en
+torno al 0. El histograma nos delata como hay bastantes valores fuera de
+rango. Para confirmarlo vemos el whisker plot:
 
 ```{r}
 ggplot(credit, aes(y = V11)) +
@@ -639,9 +803,10 @@ ggplot(credit, aes(y = V11)) +
   labs(title = "Boxplot de V11", y = "V11", x = "") +
   theme_minimal()
 ```
- 
-Confirmamos lo dicho anteriormente, podemos ver como hay muchisimos valores fuera del RIC.
-Estos valores más adelante valoraremos su efecto y el tratamiento que le daremos.
+
+Confirmamos lo dicho anteriormente, podemos ver como hay muchisimos
+valores fuera del RIC. Estos valores más adelante valoraremos su efecto
+y el tratamiento que le daremos.
 
 ## Variable V15
 
@@ -663,10 +828,12 @@ ggplot(credit, aes(x = V15)) +
   theme_minimal()
 ```
 
-Al igual que con la variable anterior, la mayor concentración de valores esta en torno
-al 0. Esto nos puede llevar a que las variables tengan una cierta correlación como ya 
-estudiaremos más adelante. Aqui aunque el histograma parezca tener menos datos atípicos
-realmente es la variable que más porcentaje tiene debido a su alta concentración en los valores bajos.
+Al igual que con la variable anterior, la mayor concentración de valores
+esta en torno al 0. Esto nos puede llevar a que las variables tengan una
+cierta correlación como ya estudiaremos más adelante. Aqui aunque el
+histograma parezca tener menos datos atípicos realmente es la variable
+que más porcentaje tiene debido a su alta concentración en los valores
+bajos.
 
 Analizamos el whisker plot:
 
@@ -677,20 +844,23 @@ ggplot(credit, aes(y = V15)) +
   theme_minimal()
 ```
 
-Como podemos ver, la caja que representa el RIC es muy fina debido a lo que hemos comentado
-anteriormente, la alta concentración en torno al 0. Este diagrama reafirma una vez más
-lo dicho anteriormente, y representa la gran cantidad de $outliers$ que tiene esta variable.
-Más adelante se tratarán estos valores.
+Como podemos ver, la caja que representa el RIC es muy fina debido a lo
+que hemos comentado anteriormente, la alta concentración en torno al 0.
+Este diagrama reafirma una vez más lo dicho anteriormente, y representa
+la gran cantidad de $outliers$ que tiene esta variable. Más adelante se
+tratarán estos valores.
 
 # Dividiendo datos en Train/Test
 
-Los datos de los que se dispone se deben dividir en dos grupos. Uno para entrenar el sistema
-y otro grupo para hacer una estimación del rendimiento de los modelos entrenados con datos nuevos.
+Los datos de los que se dispone se deben dividir en dos grupos. Uno para
+entrenar el sistema y otro grupo para hacer una estimación del
+rendimiento de los modelos entrenados con datos nuevos.
 
-Es importante que el conjunto de test (o de publicación) se mantenga apartado y no se utilice la in-
-formación que contiene para tomar decisiones sobre el entrenamiento puesto que hacerlo implica introducir
-sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es dividir los datos y dejar de un lado
-los datos de test.
+Es importante que el conjunto de test (o de publicación) se mantenga
+apartado y no se utilice la información que contiene para tomar
+decisiones sobre el entrenamiento puesto que hacerlo implica introducir
+sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es
+dividir los datos y dejar de un lado los datos de test.
 
 ```{r}
 credit.trainIdx<-readRDS("credit.trainIdx")
@@ -698,7 +868,8 @@ credit.Datos.Train<-credit[credit.trainIdx,]
 credit.Datos.Test<-credit[-credit.trainIdx,]
 ```
 
-Después comprobamos que efectivamente, tenemos 553 observaciones tal y como se dice en el enunciado.
+Después comprobamos que efectivamente, tenemos 553 observaciones tal y
+como se dice en el enunciado.
 
 ```{r}
 nrow(credit.Datos.Train)
@@ -706,29 +877,82 @@ nrow(credit.Datos.Train)
 
 # Pre-procesado de datos(III): Eliminar nulos, predictores correlados o de poca Varianza
 
-Para tomar decisiones sobre el conjunto de datos, vamos a analizar únicamente el 
-conjunto de datos Train, aunque las decisiones tomadas se aplicarán a los conjuntos
-Train y Test.
+Para tomar decisiones sobre el conjunto de datos, vamos a analizar
+únicamente el conjunto de datos Train, aunque las decisiones tomadas se
+aplicarán a los conjuntos Train y Test.
+
+## Eliminación de variables superfluas
+
+Debido a que no todas las varibles de la base de datos son necesarias
+para predecir la variable objetivo, vamos a eliminar las que no aportan
+información en base al estudio realizado anteriormente.
+
+### Variables binarias
+
+Al no poder catalogar realmente la importancia de las variables binarias
+(o booleanas), decidimos eliminarlas debido a que estas variables pueden
+incrementar la complejidad de los datos. Además, estas variables pueden
+llevarnos al sobreajuste (overfitting) provocando que el modelo aprenda
+sobre ruido o patrones irrelevantes perdiendo capacidad de
+generalización. Entre otras cosas, también mejora la optimización de
+recursos ya que menos variables significa un menor consumo de memoria y
+recursos computacionales.
+
+Procedemos a eliminarlas:
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train %>% select(-V1, -V4,-V5, -V9, -V10, -V12)
+```
+
+### Variables categóricas 
+
+Algunas variables de la base de datos poseen gran cantidad de factores,
+podemos pensar que estas están destinadas a describir características de
+los clientes, como el sector en donde trabajan o su nacionalidad... , lo
+que es información irrelevante para mejorar la capacidad predictiva del
+modelo, por lo que procedemos a eliminarlas.
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train %>% select(-V6, -V7, -V13)
+
+```
+
+Después de haber eliminado las variables que creíamos correspondientes,
+se nos queda la siguiente base de datos:
+
+```{r}
+head(credit.Datos.Train)
+```
+
+Ahora aplicamos estos mismos cambios al conjunto test.
+
+```{r}
+credit.Datos.Test = credit.Datos.Test %>% select(-V1, -V4,-V5, -V6, -V7, -V13, -V9, -V10, -V12)
+```
 
 ## Tratamiendo de valores nulos
 
 ### Variables numéricas
 
-Antes de comenzar, ara tomar medida de cuán serio es el problema de los valores nulos, debemos contar los casos que tienen valores nulos, y lo hacemos con $complete.cases()$.
-
+Antes de comenzar, para tomar medida de cuán serio es el problema de los
+valores nulos, debemos contar los casos que tienen valores nulos, y lo
+hacemos con $complete.cases()$.
 
 ```{r}
 nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 ```
 
-Tenemos un total de 37 filas, de 553, aproximadamente un 7% de casos. Esto es un
-porcentaje importante que conviene tratar. Aunque no es extremadamente alto, tampoco es despreciable,
-y si no se maneja adecuadamente, podría afectar la calidad del análisis y el rendimiento del modelo.
+Tenemos un total de 24 filas, de 553, aproximadamente un 4% de casos.
+Esto es un porcentaje que conviene tratar. Aunque no es extremadamente
+alto, tampoco es despreciable, y si no se maneja adecuadamente, podría
+afectar la calidad del análisis y el rendimiento del modelo.
 
-Antes de aplicar una solución a estos valores, vamos a realizar un estudio de correlaciones.
-La idea es simple. Si uno de los atributos con valores nulos tiene una fuerte correlación con otro, podemos
-aprovechar ese hecho para así generar sustitutos para los valores nulos, mediante una técnica que introduce
-poco sesgo y sigue teniendo un bajo coste computacional.
+Antes de aplicar una solución a estos valores, vamos a realizar un
+estudio de correlaciones. La idea es simple, si uno de los atributos con
+valores nulos tiene una fuerte correlación con otro, podemos aprovechar
+ese hecho para así generar sustitutos para los valores nulos, mediante
+una técnica que introduce poco sesgo y sigue teniendo un bajo coste
+computacional.
 
 ```{r}
 # Visualización rápida de la matriz de correlación en forma de símbolos
@@ -736,45 +960,54 @@ symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], use = "
 
 ```
 
-La matriz de correlación simbólica muestra que **no hay correlaciones fuertes** entre las variables en este subconjunto. Dado que todas las correlaciones son bajas, el método de imputación basado en correlación podría no ser efectivo en este caso, ya que no hay ninguna variable que esté claramente relacionada con otra.
+La matriz de correlación simbólica muestra que **no hay correlaciones
+fuertes** entre las variables en este subconjunto. Dado que todas las
+correlaciones son bajas, el método de imputación basado en correlación
+podría no ser efectivo en este caso, ya que no hay ninguna variable que
+esté claramente relacionada con otra.
 
-En lugar de usar correlaciones, vamos a comprobar si sería posible realizar la sustitución de varibles numéricas
-mediante $medianImpute$ que consiste en reemplazar los valores nulos por la mediana de esa variable.
+En lugar de usar correlaciones, vamos a comprobar si sería posible
+realizar la sustitución de varibles numéricas mediante $medianImpute$
+que consiste en reemplazar los valores nulos por la mediana de esa
+variable.
 
-Cabe destacar que no utlizamos el algoritmo de Clustering Knn ya que este algoritmo modifica los datos y estamos 
-limpiando los datos desconocidos de todo el conjunto de dato por tanto no nos conviene modificar los datos.
-Este proceso de ajuste de los datos será llevado a cabo más adelante para adaptarnos a los modelos usados.
+Cabe destacar que no utlizamos el algoritmo de Clustering Knn ya que
+este algoritmo normalizar los datos y estamos limpiando los datos
+desconocidos de todo el conjunto de datos de entrenamiento, por tanto no
+nos conviene normalizar los datos debido a que aún no sabemos que
+modelos vamos a utilizar. Este proceso de ajuste de los datos será
+llevado a cabo más adelante.
 
-Sabiendo que tenemos valores NA en las columnas numéricas, vamos a utilizar
-el comando de caret $preProcess()$ para generar un objeto que nos permite modificar los datos para 
-facilitar el entrenamiento de modelos. 
-Veamos ahora los comandos para asignar los valores nulos o missing usando $medianImpute$
+Sabiendo que tenemos valores NA en las columnas numéricas, vamos a
+utilizar el comando de caret $preProcess()$ para generar un objeto que
+nos permite modificar lo datos para facilitar el entrenamiento de
+modelos. Veamos ahora los comandos para asignar los valores nulos o
+missing usando $medianImpute$
 
 ```{r}
-library(caret)
-library(RANN)
 
-# Crear el objeto de preprocesamiento para imputación de valores nulos usando KNN
 preproc <- preProcess(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], method = "medianImpute")
-# Aplicar el preprocesamiento para imputar los valores nulos
 credit_num_imputed <- predict(preproc, credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)])
 
 # Verificar que no hay valores nulos en el nuevo dataframe
 sum(is.na(credit_num_imputed))
 
 ```
-Tras comprobar que el numero de valores NA es 0, comprobamos que nuestro proceso ha tenido éxito.
 
+Tras comprobar que el numero de valores NA es 0, comprobamos que nuestro
+proceso ha tenido éxito.
 
 ### Variables Categóricas
 
-Para las variables categóricas decidimos imputar valores nulos en variables categóricas usando la moda, se reemplazan los valores nulos con el valor más frecuente de esa variable (moda). Esta técnica es sencilla, rápida y mantiene una distribución similar a la original de los datos.
-
+Para las variables categóricas decidimos imputar valores nulos en
+variables categóricas usando la moda, se reemplazan los valores nulos
+con el valor más frecuente de esa variable (moda). Esta técnica es
+sencilla, rápida y mantiene una distribución similar a la original de
+los datos.
 
 ```{r}
 
 credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)] <- credit_num_imputed
-
 
 imputar_moda <- function(x) {
   if (is.factor(x) || is.character(x)) {
@@ -795,32 +1028,38 @@ nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 credit.Datos.Train[!complete.cases(credit.Datos.Train),]
 ```
 
-El proceso ha tenido éxito, lo comprobamos ya que obtenemos que la base de datos arreglada
-tiene 0 valores NA.
-
+El proceso ha tenido éxito, lo comprobamos ya que obtenemos que la base
+de datos arreglada tiene 0 valores NA.
 
 ## Eliminar variables con poca varianza
 
-Que una variable tenga poca varianza indica que carece de mucha información para crear distinciones entre
-los datos. Cuando prácticamente todos los ejemplos son iguales en una característica, dicha característica
-dice poco de la generalidad de los individuos.
-Por tanto, vamos a proceder a identificar las variables que tienen escasa varianza para ser
-eliminadas. Para llevar esto a cabo, utilizaremos la función $nearZeroVar()$:
+Que una variable tenga poca varianza indica que carece de mucha
+información para crear distinciones entre los datos. Cuando
+prácticamente todos los ejemplos son iguales en una característica,
+dicha característica dice poco de la generalidad de los individuos. Por
+tanto, vamos a proceder a identificar las variables que tienen escasa
+varianza para ser eliminadas. Para llevar esto a cabo, utilizaremos la
+función $nearZeroVar()$:
 
 ```{r}
 nearZeroVar(credit.Datos.Train)
 ```
-Como podemos ver, la funcion nos devuelve **0** por tanto no tenemos ninguna variable
-que encaje en estas características y deba ser eliminada.
+
+Como podemos ver, la funcion nos devuelve **0** por tanto no tenemos
+ninguna variable que encaje en estas características y deba ser
+eliminada.
 
 ## Eliminar variables correladas
+
 ```{r}
 symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]))
 ```
 
-Como podemos observar en el grafico, no existen variables númericas con correlación
-por tanto no hay que tratar ninguna variable en este punto del análisis.
+Como podemos observar en el grafico, no existen variables númericas con
+una alta correlación por tanto no hay que tratar ninguna variable en
+este punto del análisis.
 
 # Pre-procesado de datos (IV): Transformando y construyendo variables
 
-hay que crear los datos para usar en diferentes modelos normalizado y sin normalizar ver indice año pasado.
+hay que crear los datos para usar en diferentes modelos normalizado y
+sin normalizar ver indice año pasado.
