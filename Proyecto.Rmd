@@ -34,6 +34,7 @@ library(dplyr)
 library(GGally)
 library(caret)
 library(RANN)
+library(randomForest)
 ```
 
 ## Carga de la base de datos.
@@ -1071,12 +1072,12 @@ los valores atípicos de las variables con alto porcentaje de $outliers$, analiz
 
 El cambio de escala se aplica a las variables para normalizarlas y ponerlas todas en una escala común. Esto se hace tanto para mejorar la comprensión sobre su distribución y poder compararlas más fácilmente evitando la distorsión de diferencia de escalas como por el hecho de que de esta manera se evitan problemas con los algoritmos de ajuste de modelos que no posean la propiedad de invarianza al escalado.
 
-Procedemos con el escalado.
+Procedemos con la normalización.
 
 ```{r}
 credit.Datos.Train.Normalizados=credit.Datos.Train
 # Aplicar preProcess para centrar en la mediana y escalar por el RIC
-preproc <- preProcess(credit.Datos.Train[, c("V8", "V11", "V15")], method = c("center", "scale"), 
+preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], method = c("center", "scale"), 
                       center = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, median), 
                       scale = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, IQR))
 
@@ -1087,8 +1088,8 @@ head(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
 
 ```
 
-Como podemos comprobar hemos aplicado el escalado correctamente, el obtener valores
-negativos es completamente normal al aplicar este tipo de escalado. Esto es debido a
+Como podemos comprobar hemos aplicado la normalización correctamente, el obtener valores
+negativos es completamente normal al aplicar este tipo de normalización. Esto es debido a
 que la normalización robusta consiste en centrar la variable en la mediana y escalar
 mediante el RIC. Por tanto, los valores negativos significan que está el valor por debajo
 de la mediana y los positivos que la supera.
@@ -1096,17 +1097,37 @@ de la mediana y los positivos que la supera.
 ### Variables con baja proporción de outliers
 
 Como hemos analizado previamente, las variables **V2, V3 y V14**$ presentan una distribución
-muy sesgada positivamente. Por lo tanto, vamos a realizar una normalización logarítmica
+muy sesgada positivamente. Por lo tanto, vamos a realizar una transformación logarítmica
 para conseguir así reducir el sesgo y comprimir la larga cola de valores que arrastran las
 distribuciones de las variables además de mejorar la simetría de la distribución. 
 
-Aplicamos la normalización logarítmica para las variables mencionadas.
+Aplicamos la transformación logarítmica para las variables mencionadas.
 
 ```{r}
 credit.Datos.Train.Normalizados$V2=log1p(credit.Datos.Train.Normalizados$V2)
 credit.Datos.Train.Normalizados$V3=log1p(credit.Datos.Train.Normalizados$V3)
 credit.Datos.Train.Normalizados$V14=log1p(credit.Datos.Train.Normalizados$V14)
 ```
+
+Después de aplicar la transformación logarítmica para reducir la asimetría en los datos, procedemos a aplicar una normalización adicional. La razón es que, aunque la transformación logarítmica reduce la asimetría y comprime valores extremos, no garantiza que los datos estén en un rango uniforme o en la escala adecuada para algunos modelos.
+
+Procedemos a aplicar una normalización Min-Max dado que los modelos que vamos a utilizar se benefician de la normalización. Aplicamos este método ya que consideramos que es el más adecuado para los tipos de variable que tenemos ya que mantienen la distribución original de los datos, solo modifica su escalado.
+```{r}
+min_max_normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+credit.Datos.Train.Normalizados$V2=min_max_normalize(credit.Datos.Train.Normalizados$V2)
+credit.Datos.Train.Normalizados$V3=min_max_normalize(credit.Datos.Train.Normalizados$V3)
+credit.Datos.Train.Normalizados$V14=min_max_normalize(credit.Datos.Train.Normalizados$V14)
+```
+
+Ahora comprobamos que se ha realizado correctamente.
+
+```{r}
+summary(credit.Datos.Train.Normalizados[, c("V2", "V3", "V14")])
+```
+
 
 ### Aplicando cambios a datos de test
 
@@ -1118,6 +1139,9 @@ credit.Datos.Test.Normalizados$V2=log1p(credit.Datos.Test.Normalizados$V2)
 credit.Datos.Test.Normalizados$V3=log1p(credit.Datos.Test.Normalizados$V3)
 credit.Datos.Test.Normalizados$V14=log1p(credit.Datos.Test.Normalizados$V14)
 
+credit.Datos.Test.Normalizados$V2=min_max_normalize(credit.Datos.Test.Normalizados$V2)
+credit.Datos.Test.Normalizados$V3=min_max_normalize(credit.Datos.Test.Normalizados$V3)
+credit.Datos.Test.Normalizados$V14=min_max_normalize(credit.Datos.Test.Normalizados$V14)
 #Utilizamos la variable 'prepoc' creada anteriormente con los datos de TRAIN para evitar peaking
 
 credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")])
@@ -1125,4 +1149,49 @@ credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, cred
 
 
 ## Preparando datos de entrenamiento y test para Ramdom Forest
+Dado que Random Forest genera muchas ramas y combina predicciones de árboles individuales, las variables irrelevantes o con poca información pueden hacer que el modelo sea más lento o consuma más memoria.
 
+Para analizar la contribución de cada variable en la predicción del resultado final vamos a utilizar
+el modelo Ramdom Forest. Primeramente, entrenamos el modelo con los datos que tenemos y posteriormente
+revisamos la importancia de cada variable para analizar si hay alguna candidata a eliminar.
+
+```{r}
+predictors <- credit.Datos.Train[, -which(names(credit.Datos.Train) == "V16")]
+target <- credit.Datos.Train$V16
+rf_model <- randomForest(x = predictors, y = target, importance = TRUE)
+importance_rf <- importance(rf_model)
+varImpPlot(rf_model)
+
+```
+El diagrama de la izquierda muestra la importancia de cada variable en la precisión del modelo (MeanDecreaseAccuracy). Este valor indica cuánto disminuiría la precisión si eliminamos cada variable, ayudándonos a identificar aquellas que son esenciales para mantener la capacidad predictiva del modelo.
+
+Por otro lado, el diagrama de la derecha muestra la importancia de cada variable en la ganancia de información a través de la reducción del índice de Gini (MeanDecreaseGini). Esta métrica refleja el impacto de cada variable en la reducción de la impureza de los datos en los nodos del árbol, lo cual es fundamental para la adquisición de conocimiento por parte del modelo.
+
+Analizando los resultados, podemos ver como hay variables que tienen baja importancia en
+la precisión, sin embargo, estas mismas variables si tienen importancia en la adquisición 
+de conocimiento del modelo. Por tanto, concluimos con que no debemos realizar ningún tipo
+de reducción de dimensionalidad a los datos.
+
+
+Para continuar, vamos a proceder a la reducción del sesgo de las distintas variables dado que 
+ramdonForest se ve beneficiado mejorando la interpretación de los datos.
+
+Ya hemos analizado anteriormente las variables viendo que todas presentan un sesgo positivo,
+para reducirlo aplicamos una transformación logarítmica:
+
+```{r}
+credit.Datos.Train.Rf=credit.Datos.Train
+credit.Datos.Train.Rf$V2=log1p(credit.Datos.Train.Rf$V2)
+credit.Datos.Train.Rf$V3=log1p(credit.Datos.Train.Rf$V3)
+credit.Datos.Train.Rf$V8=log1p(credit.Datos.Train.Rf$V8)
+credit.Datos.Train.Rf$V11=log1p(credit.Datos.Train.Rf$V11)
+credit.Datos.Train.Rf$V14=log1p(credit.Datos.Train.Rf$V14)
+credit.Datos.Train.Rf$V15=log1p(credit.Datos.Train.Rf$V15)
+ggplot(credit.Datos.Train, aes(x = V2)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
+  labs(title = "Histograma de V2", x = "V2", y = "Frecuencia") +
+  theme_minimal()
+```
+
+Como podemos ver, por ejemplo, en el histograma de la variable V2 se ha corregido en gran medida el sesgo
+ganando algo de simetría, por tanto la transformación se ha aplicado correctamente.
