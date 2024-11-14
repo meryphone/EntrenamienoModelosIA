@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introdución
 
-En este documento blas bla bla.... CUANDO TERMINEMOS
+En este documento blas blas blas.... CUANDO TERMINEMOS
 
 ## Carga de libreriías necesarias
 
@@ -34,7 +34,9 @@ library(dplyr)
 library(GGally)
 library(caret)
 library(RANN)
+
 library(randomForest)
+library(nnet)
 ```
 
 ## Carga de la base de datos.
@@ -1195,3 +1197,127 @@ ggplot(credit.Datos.Train, aes(x = V2)) +
 
 Como podemos ver, por ejemplo, en el histograma de la variable V2 se ha corregido en gran medida el sesgo
 ganando algo de simetría, por tanto la transformación se ha aplicado correctamente.
+
+En cuanto a los outliers, debido a que estamos preparando los datos para **randomForest** no vamos a aplicar ningún tratamiento dado que este tipo de algoritmos no se ven afectados por los datos atípicos y de tratarlos podríamos capacidad de generalización en el modelo entrenado.
+
+
+Aplicamos estos cambios a los datos de test:
+
+```{r}
+credit.Datos.Test.Rf=credit.Datos.Test
+credit.Datos.Test.Rf$V2=log1p(credit.Datos.Test.Rf$V2)
+credit.Datos.Test.Rf$V3=log1p(credit.Datos.Test.Rf$V3)
+credit.Datos.Test.Rf$V8=log1p(credit.Datos.Test.Rf$V8)
+credit.Datos.Test.Rf$V11=log1p(credit.Datos.Test.Rf$V11)
+credit.Datos.Test.Rf$V14=log1p(credit.Datos.Test.Rf$V14)
+credit.Datos.Test.Rf$V15=log1p(credit.Datos.Test.Rf$V15)
+```
+
+
+# Entrenando modelos
+
+Para abordar esta sección del análisis vamos a dividirla en tantas secciones como algoritmos de aprendizaje.
+
+## Random Forest
+
+Para comenzar, vamos a empezar entrenando el algorítmo que no necesita noramlización.
+
+```{r}
+set.seed(1234)
+
+control <- trainControl(method = "cv", number = 10)
+
+modelo_rf_cv <- train(
+    V16 ~ .,                           
+    data = credit.Datos.Train.Rf,
+    method = "rf",
+    trControl = control,
+    tuneLength = 5                        # Ajusta según la profundidad de búsqueda de hiperparámetros
+)
+
+```
+
+```{r}
+print(modelo_rf_cv)
+```
+
+```{r}
+predicciones <- predict(modelo_rf_cv, newdata = credit.Datos.Test.Rf)
+confusionMatrix(predicciones, credit.Datos.Test.Rf$V16)
+```
+
+El modelo tiene un buen rendimiento general, con una precisión del 81% en el conjunto de prueba, lo que significa que clasifica correctamente la mayoría de los casos. La sensibilidad es alta (89%), lo que indica que identifica bien la clase principal (-), mientras que la especificidad (70%) muestra que es algo menos preciso en identificar la clase +, pero sigue siendo razonable. El valor Kappa de 0.61 sugiere que el modelo tiene una concordancia sólida más allá del azar. En resumen, el modelo es efectivo y generaliza bien en ambas clases, aunque tiene un ligero sesgo hacia la clase -.
+
+## Redes Neuronales
+
+```{r}
+set.seed(1234)
+modelo_nnet <- train(
+    V16 ~ .,                           # Reemplaza `Target` con tu variable objetivo
+    data = credit.Datos.Train.Normalizados,
+    method = "nnet",
+    trControl = control,
+    tuneLength = 5,
+    trace = FALSE
+)
+```
+
+```{r}
+print(modelo_nnet)
+predicciones <- predict(modelo_nnet, credit.Datos.Test.Normalizados) # Reemplaza con tu conjunto de test
+confusionMatrix(predicciones, credit.Datos.Test$V16)
+
+```
+
+El modelo tiene una precisión del 78.83%, lo que significa que acertó en casi 8 de cada 10 predicciones. La sensibilidad es alta (88.16%), indicando que detecta bien los casos positivos, pero su especificidad es menor (67.21%), lo que sugiere que le cuesta un poco más identificar los negativos correctamente. El valor Kappa de 0.56 muestra una concordancia moderada entre las predicciones y las etiquetas reales. En general, el modelo funciona bien en detectar positivos, pero podría mejorarse en su capacidad para distinguir negativos.
+
+## K-Nearest-Neighbors (KNN)
+
+```{r}
+set.seed(1234)
+knn_model <- train(
+    V16 ~ .,                          # Reemplaza `V16` con tu variable objetivo
+    data = credit.Datos.Train.Normalizados,
+    method = "knn",
+    trControl = control,
+    tuneLength = 10                   # Ajusta automáticamente k en un rango de 10 valores
+)
+```
+
+```{r}
+print(knn_model)
+# Realizar predicciones en el conjunto de prueba
+knn_predictions <- predict(knn_model, newdata = credit.Datos.Test.Normalizados)
+
+# Calcular la matriz de confusión
+confusionMatrix(knn_predictions, credit.Datos.Test.Normalizados$V16)
+
+```
+
+La matriz de confusión del modelo KNN muestra una precisión del 78.1%, lo que significa que el modelo acertó en la mayoría de las predicciones, pero todavía tiene margen de mejora. La sensibilidad es de 88.2%, indicando que el modelo identifica bien las instancias positivas, mientras que la especificidad es de 65.6%, lo que sugiere que tiene más dificultades en identificar correctamente las instancias negativas. El valor Kappa de 0.548 indica un acuerdo moderado entre las predicciones y los valores reales. En general, el modelo es bastante bueno en predecir la clase positiva, aunque tiene menos precisión con la clase negativa.
+
+## Gradient Boosting Machine (GBM)
+
+```{r}
+set.seed(1234)
+gbm_model <- train(
+    V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
+    data = credit.Datos.Train.Normalizados,
+    method = "gbm",
+    trControl = control,
+    tuneLength = 5,
+    verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
+)
+
+```
+```{r}
+print(gbm_model)
+# Realizar predicciones en el conjunto de prueba
+gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.Normalizados)
+
+# Calcular la matriz de confusión
+confusionMatrix(gbm_predictions, credit.Datos.Test.Normalizados$V16)
+
+```
+
+El modelo GBM ha obtenido una precisión del 79.56%, lo que significa que aproximadamente el 80% de las predicciones coinciden con las etiquetas reales. La sensibilidad es del 86.84%, lo que indica que el modelo es bastante bueno detectando los casos positivos. La especificidad es del 70.49%, lo cual muestra que, aunque es efectivo identificando los negativos, tiene margen para mejorar. El valor predictivo positivo (78.57%) y el valor predictivo negativo (81.13%) indican que el modelo predice con razonable confianza tanto los positivos como los negativos. El índice kappa de 0.5809 sugiere un acuerdo moderado entre las predicciones del modelo y las etiquetas reales. En general, el modelo presenta un rendimiento sólido pero puede mejorarse, especialmente en la precisión de los negativos.
