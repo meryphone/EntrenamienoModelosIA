@@ -1077,11 +1077,12 @@ El cambio de escala se aplica a las variables para normalizarlas y ponerlas toda
 Procedemos con la normalización.
 
 ```{r}
+min_max_normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
 credit.Datos.Train.Normalizados=credit.Datos.Train
 # Aplicar preProcess para centrar en la mediana y escalar por el RIC
-preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], method = c("center", "scale"), 
-                      center = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, median), 
-                      scale = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, IQR))
+preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], method = "BoxCox")
 
 credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
 
@@ -1115,9 +1116,7 @@ Después de aplicar la transformación logarítmica para reducir la asimetría e
 
 Procedemos a aplicar una normalización Min-Max dado que los modelos que vamos a utilizar se benefician de la normalización. Aplicamos este método ya que consideramos que es el más adecuado para los tipos de variable que tenemos ya que mantienen la distribución original de los datos, solo modifica su escalado.
 ```{r}
-min_max_normalize <- function(x) {
-  return((x - min(x)) / (max(x) - min(x)))
-}
+
 
 credit.Datos.Train.Normalizados$V2=min_max_normalize(credit.Datos.Train.Normalizados$V2)
 credit.Datos.Train.Normalizados$V3=min_max_normalize(credit.Datos.Train.Normalizados$V3)
@@ -1248,85 +1247,7 @@ confusionMatrix(predicciones, credit.Datos.Test.Rf$V16)
 
 El modelo tiene un buen rendimiento general, con una precisión del 81% en el conjunto de prueba, lo que significa que clasifica correctamente la mayoría de los casos. La sensibilidad es alta (89%), lo que indica que identifica bien la clase principal (-), mientras que la especificidad (70%) muestra que es algo menos preciso en identificar la clase +, pero sigue siendo razonable. El valor Kappa de 0.61 sugiere que el modelo tiene una concordancia sólida más allá del azar. En resumen, el modelo es efectivo y generaliza bien en ambas clases, aunque tiene un ligero sesgo hacia la clase -.
 
-```{r}
 
-# Cargar los paquetes necesarios
-library(caret)
-library(randomForest)
-
-# Configurar la semilla para reproducibilidad
-set.seed(1234)
-
-# Definir el control de entrenamiento con validación cruzada
-control <- trainControl(
-  method = "cv",          # Usar validación cruzada
-  number = 10,            # Número de particiones (10-fold CV)
-  search = "grid"         # Realizar una búsqueda en malla
-)
-
-# Definir la malla de hiperparámetros solo para mtry
-tune_grid <- expand.grid(
-  mtry = c(2, 4, 6, 8, 10, 12)       # Número de variables a considerar en cada split
-)
-
-# Entrenar el modelo usando la búsqueda de hiperparámetros solo con mtry
-modelo_rf <- train(
-  V16 ~ .,                                # Fórmula del modelo
-  data = credit.Datos.Train.Rf, # Conjunto de datos de entrenamiento
-  method = "rf",                          # Especificar Random Forest como método
-  trControl = control,                    # Control de entrenamiento con CV
-  tuneGrid = tune_grid,                   # Malla de hiperparámetros solo para mtry
-  ntree = 1000                            # Número de árboles configurado directamente
-)
-
-# Mostrar los resultados del modelo
-print(modelo_rf)
-
-# Ver los hiperparámetros óptimos y precisión obtenida
-cat("Mejores hiperparámetros:\n")
-print(modelo_rf$bestTune)
-cat("\nPrecisión obtenida con los mejores hiperparámetros:", max(modelo_rf$results$Accuracy), "\n")
-
-# Ver la matriz de confusión en el conjunto de entrenamiento
-predicciones <- predict(modelo_rf, newdata=credit.Datos.Test.Rf)
-confusionMatrix(predicciones, credit.Datos.Test.Rf$V16)
-
-
-
-```
-
-```{r}
-# Configurar los mejores hiperparámetros encontrados
-best_mtry <- 11
-best_ntree <- 1000
-best_nodesize <- 5
-
-# Entrenar el modelo con los hiperparámetros óptimos en el conjunto de entrenamiento
-library(randomForest)
-set.seed(1234)
-rf_final_model <- randomForest(
-  V16 ~ ., 
-  data = credit.Datos.Train.Rf, 
-  mtry = best_mtry, 
-  ntree = best_ntree, 
-  nodesize = best_nodesize
-)
-
-# Predecir en el conjunto de prueba
-predictions <- predict(rf_final_model, credit.Datos.Test)
-
-# Crear una matriz de confusión para evaluar el rendimiento
-confusion_matrix <- table(Predicted = predictions, Actual = credit.Datos.Test$V16)
-
-# Calcular la precisión
-accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
-
-# Mostrar los resultados
-cat("\nMatriz de confusión:\n")
-print(confusion_matrix)
-cat("\nPrecisión en el conjunto de prueba:", accuracy, "\n")
-
-```
 
 
 ## Redes Neuronales
@@ -1351,6 +1272,49 @@ confusionMatrix(predicciones, credit.Datos.Test$V16)
 ```
 
 El modelo tiene una precisión del 78.83%, lo que significa que acertó en casi 8 de cada 10 predicciones. La sensibilidad es alta (88.16%), indicando que detecta bien los casos positivos, pero su especificidad es menor (67.21%), lo que sugiere que le cuesta un poco más identificar los negativos correctamente. El valor Kappa de 0.56 muestra una concordancia moderada entre las predicciones y las etiquetas reales. En general, el modelo funciona bien en detectar positivos, pero podría mejorarse en su capacidad para distinguir negativos.
+
+```{r}
+
+# Configuración del control para la validación cruzada
+set.seed(1234)
+control <- trainControl(
+  method = "cv",           # Validación cruzada
+  number = 5,              # Número de particiones
+)
+tuneGrid <- expand.grid(
+  size = c(6, 8, 10),          # Prueba valores mayores
+  decay = c(0.001, 0.005, 0.01) # Valores más pequeños
+)
+
+
+
+# Ajuste del modelo
+set.seed(1234)
+modelo_nnet <- train(
+  V16 ~ .,                        # Fórmula: variable dependiente vs independientes
+  data = credit.Datos.Train.Normalizados,      # Datos de entrenamiento
+  method = "nnet",                # Método nnet
+  tuneGrid = tuneGrid,            # Rango de hiperparámetros
+  trControl = control,            # Validación cruzada
+  linout = FALSE,                 # Salida no lineal
+  trace = FALSE,                  # No mostrar progreso interno de nnet
+  maxit = 1000                     # Máximo de iteraciones
+)
+
+# Mostrar los resultados del ajuste
+print(modelo_nnet)
+
+```
+
+```{r}
+# Predicción en conjunto de prueba
+predicciones <- predict(modelo_nnet, newdata = credit.Datos.Test.Normalizados)
+
+# Matriz de confusión
+confusionMatrix(predicciones, credit.Datos.Test.Normalizados$V16)
+
+```
+
 
 ## K-Nearest-Neighbors (KNN)
 
@@ -1413,36 +1377,46 @@ modelLookup(("gbm"))
 ```
 
 Como observamos tenemos cuatro hiperpárametros disponibles para configurar. Los cuatro hiperparámetros que podemos ajustar en el modelo gbm son: **n.trees**, que define el número de iteraciones o árboles en el proceso de boosting, lo que controla la complejidad y capacidad de ajuste del modelo; **interaction.depth**, que establece la profundidad máxima de cada árbol, determinando hasta qué punto el modelo puede capturar interacciones complejas entre variables; **shrinkage**, también conocido como tasa de aprendizaje, que reduce el impacto de cada árbol en la predicción final, ayudando a evitar el sobreajuste y permitiendo que el modelo aprenda de manera más gradual; y **n.minobsinnode**, que especifica el número mínimo de observaciones requeridas en un nodo terminal, lo cual ayuda a regular la complejidad de los árboles y reduce el riesgo de sobreajuste ajustando la granularidad de las divisiones. Estos parámetros nos permiten controlar la flexibilidad y precisión del modelo.
+
+
+
+
 ```{r}
-
-# Establecer un control de entrenamiento con validación cruzada de 10 pliegues
-control <- trainControl(method = "cv", number = 10)
-
-# Definir un grid de búsqueda más amplio para mejorar la precisión
-tuneGrid <- expand.grid(
-  n.trees = seq(100, 1000, by = 100),              # Número de árboles
-  interaction.depth = seq(1, 5, by = 1),           # Profundidad del árbol
-  shrinkage = c(0.05, 0.1, 0.2, 0.3),              # Tasa de aprendizaje
-  n.minobsinnode = c(5, 10, 15)                    # Mínimo de observaciones en nodo final
+# Actualización del control y grid
+set.seed(1234)
+control <- trainControl(
+  method = "cv",              # Validación cruzada
+  number = 10,                # Aumentamos a 10 folds
 )
 
-# Entrenar el modelo gbm usando el grid de hiperparámetros
-set.seed(123)
+tuneGrid <- expand.grid(
+  n.trees = c(500, 700, 1000),   # Mayor número de árboles
+  interaction.depth = c(2, 3, 4),
+  shrinkage = c(0.01, 0.005),    # Tasa de aprendizaje más pequeña
+  n.minobsinnode = c(10, 15, 20)
+)
+
+# Entrenar modelo con GBM
+set.seed(1234)
 modelo_gbm <- train(
-  V16 ~ ., 
-  data = credit.Datos.Train.Normalizados,
-  method = "gbm",
-  trControl = control,
-  tuneGrid = tuneGrid,
+  V16 ~ .,                              # Fórmula
+  data = credit.Datos.Train.Normalizados, # Datos normalizados
+  method = "gbm",                       # Método GBM
+  trControl = control,                  # Validación cruzada
+  tuneGrid = tuneGrid,                  # Rango de hiperparámetros
   verbose = FALSE
 )
 
-# Ver los mejores hiperparámetros encontrados
+# Evaluar el modelo
 print(modelo_gbm)
+cat("Mejores hiperparámetros encontrados:\n")
+print(modelo_gbm$bestTune)
 
-# Evaluar el modelo con el conjunto de prueba
-pred <- predict(modelo_gbm, newdata = credit.Datos.Test.Normalizados)
-confusionMatrix(pred, credit.Datos.Test.Normalizados$V16)
+# Predicciones en el conjunto de prueba
+predicciones <- predict(modelo_gbm, newdata = credit.Datos.Test.Normalizados)
+matriz_confusion <- confusionMatrix(predicciones, credit.Datos.Test.Normalizados$V16)
+print(matriz_confusion)
+
 
 ```
 ```{r}
