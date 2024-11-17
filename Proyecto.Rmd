@@ -1090,6 +1090,39 @@ credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, cre
 head(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
 
 ```
+```{r}
+# Configurar gráficos en una ventana de 2 filas y 3 columnas
+par(mfrow = c(2, 3))  
+
+# Lista de columnas a graficar
+columnas <- c("V8", "V11", "V15")
+
+# Graficar cada variable antes de Box-Cox
+for (col in columnas) {
+  hist(
+    credit.Datos.Train[[col]], 
+    main = paste("Antes de Box-Cox:", col),
+    xlab = col,
+    col = "lightblue", 
+    border = "white"
+  )
+}
+
+# Graficar cada variable después de Box-Cox
+for (col in columnas) {
+  hist(
+    credit.Datos.Train.Normalizados[[col]], 
+    main = paste("Después de Box-Cox:", col),
+    xlab = col,
+    col = "lightgreen", 
+    border = "white"
+  )
+}
+
+
+```
+
+
 
 Como podemos comprobar hemos aplicado la normalización correctamente, el obtener valores
 negativos es completamente normal al aplicar este tipo de normalización. Esto es debido a
@@ -1417,11 +1450,6 @@ predicciones <- predict(modelo_gbm, newdata = credit.Datos.Test.Normalizados)
 matriz_confusion <- confusionMatrix(predicciones, credit.Datos.Test.Normalizados$V16)
 print(matriz_confusion)
 
-
-```
-```{r}
-predicciones <- predict(modelo_gbm_tuned, newdata = credit.Datos.Test.Normalizados)
-confusionMatrix(predicciones, credit.Datos.Test.Normalizados$V16)  # Ajusta `V16` al nombre de tu variable objetivo
 
 ```
 
