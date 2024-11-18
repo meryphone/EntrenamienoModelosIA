@@ -1077,10 +1077,36 @@ El cambio de escala se aplica a las variables para normalizarlas y ponerlas toda
 Procedemos con la normalización.
 
 ```{r}
+credit.Datos.Train.Normalizados=credit.Datos.Train
+# Función para calcular límites de winsorización
+calcular_limites <- function(x, lower_quantile = 0.05, upper_quantile = 0.95) {
+  lower_limit <- quantile(x, lower_quantile, na.rm = TRUE)
+  upper_limit <- quantile(x, upper_quantile, na.rm = TRUE)
+  return(list(lower_limit = lower_limit, upper_limit = upper_limit))
+}
+
+# Aplicar winsorización
+winsorizar_test <- function(x, limites) {
+  x[x < limites$lower_limit] <- limites$lower_limit
+  x[x > limites$upper_limit] <- limites$upper_limit
+  return(x)
+}
+
+# Variables a winsorizar
+variables_winsorizar <- c("V8", "V11", "V15")
+
+# Winsorización en conjunto de entrenamiento
+limites_winsor <- list()
+for (var in variables_winsorizar) {
+  limites_winsor[[var]] <- calcular_limites(credit.Datos.Train.Normalizados[[var]])
+  credit.Datos.Train.Normalizados[[var]] <- winsorizar_test(credit.Datos.Train.Normalizados[[var]], limites_winsor[[var]])
+}
+
+
 min_max_normalize <- function(x) {
   return((x - min(x)) / (max(x) - min(x)))
 }
-credit.Datos.Train.Normalizados=credit.Datos.Train
+
 # Aplicar preProcess para centrar en la mediana y escalar por el RIC
 preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], method = "BoxCox")
 
@@ -1143,6 +1169,7 @@ Aplicamos la transformación logarítmica para las variables mencionadas.
 credit.Datos.Train.Normalizados$V2=log1p(credit.Datos.Train.Normalizados$V2)
 credit.Datos.Train.Normalizados$V3=log1p(credit.Datos.Train.Normalizados$V3)
 credit.Datos.Train.Normalizados$V14=log1p(credit.Datos.Train.Normalizados$V14)
+
 ```
 
 Después de aplicar la transformación logarítmica para reducir la asimetría en los datos, procedemos a aplicar una normalización adicional. La razón es que, aunque la transformación logarítmica reduce la asimetría y comprime valores extremos, no garantiza que los datos estén en un rango uniforme o en la escala adecuada para algunos modelos.
@@ -1169,6 +1196,10 @@ A continuación, vamos a aplicar todos los cambios realizados a los datos de tes
 
 ```{r}
 credit.Datos.Test.Normalizados=credit.Datos.Test
+# Winsorización en conjunto de prueba
+for (var in variables_winsorizar) {
+  credit.Datos.Test.Normalizados[[var]] <- winsorizar_test(credit.Datos.Test.Normalizados[[var]], limites_winsor[[var]])
+}
 credit.Datos.Test.Normalizados$V2=log1p(credit.Datos.Test.Normalizados$V2)
 credit.Datos.Test.Normalizados$V3=log1p(credit.Datos.Test.Normalizados$V3)
 credit.Datos.Test.Normalizados$V14=log1p(credit.Datos.Test.Normalizados$V14)
@@ -1306,36 +1337,45 @@ confusionMatrix(predicciones, credit.Datos.Test$V16)
 
 El modelo tiene una precisión del 78.83%, lo que significa que acertó en casi 8 de cada 10 predicciones. La sensibilidad es alta (88.16%), indicando que detecta bien los casos positivos, pero su especificidad es menor (67.21%), lo que sugiere que le cuesta un poco más identificar los negativos correctamente. El valor Kappa de 0.56 muestra una concordancia moderada entre las predicciones y las etiquetas reales. En general, el modelo funciona bien en detectar positivos, pero podría mejorarse en su capacidad para distinguir negativos.
 
+
+
 ```{r}
+set.seed(1234)
 
 # Configuración del control para la validación cruzada
-set.seed(1234)
 control <- trainControl(
   method = "cv",           # Validación cruzada
-  number = 5,              # Número de particiones
+  number = 10,             # Aumentar particiones
 )
+
+# Rango de hiperparámetros ampliado
 tuneGrid <- expand.grid(
-  size = c(6, 8, 10),          # Prueba valores mayores
-  decay = c(0.001, 0.005, 0.01) # Valores más pequeños
+  size = c(4, 6, 8, 10),           # Tamaño de capa oculta
+  decay = c(0.01, 0.03, 0.05, 0.07) # Regularización
 )
-
-
 
 # Ajuste del modelo
-set.seed(1234)
 modelo_nnet <- train(
-  V16 ~ .,                        # Fórmula: variable dependiente vs independientes
+  V16 ~ .,                        # Fórmula
   data = credit.Datos.Train.Normalizados,      # Datos de entrenamiento
   method = "nnet",                # Método nnet
   tuneGrid = tuneGrid,            # Rango de hiperparámetros
   trControl = control,            # Validación cruzada
   linout = FALSE,                 # Salida no lineal
-  trace = FALSE,                  # No mostrar progreso interno de nnet
-  maxit = 1000                     # Máximo de iteraciones
+  trace = FALSE,                  # No mostrar progreso interno
+  maxit = 2000                     # Incrementar iteraciones
 )
 
 # Mostrar los resultados del ajuste
 print(modelo_nnet)
+
+# Predicción en los datos de prueba
+predicciones <- predict(modelo_nnet, newdata = credit.Datos.Test.Normalizados)
+
+# Evaluación del rendimiento en los datos de prueba
+library(caret)
+conf_matrix <- confusionMatrix(predicciones, credit.Datos.Test.Normalizados$V16)
+print(conf_matrix)
 
 ```
 
