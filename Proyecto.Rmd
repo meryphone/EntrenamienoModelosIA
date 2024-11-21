@@ -34,7 +34,7 @@ library(dplyr)
 library(GGally)
 library(caret)
 library(RANN)
-
+library(e1071)
 library(randomForest)
 library(nnet)
 ```
@@ -60,18 +60,9 @@ head(credit)
 ```
 
 Observamos al importar la base de datos el tipo de datos de las
-variables es incorrecto. Antes de corregir los tipos de datos vamos a
-cuantos datos y cuales de ellos, tiene "missing data", para ello
-usaremos **complete.cases()** que veremos más adelante en la sección de
-tratar los datos nulos:
+variables es incorrecto. 
 
-```{r}
-sum(!complete.cases(credit))
-credit[!complete.cases(credit),]
-```
-
-Tras ver que efectivamente tenemos datos nulos, procedemos a transformar
-el tipo de dato de las variables tal y como se especifica en la
+Procedemos a transformar el tipo de dato de las variables tal y como se especifica en la
 documentación de la base de datos.
 
 ```{r}
@@ -1397,9 +1388,90 @@ confusionMatrix(gbm_predictions, credit.Datos.Test.gbm$V16)
 
 ```
 
-Como podemos ver, hemos mejorado tanto la precisión como la kappa. Para intentar mejorarlo aún más vamos a proceder a aplicar otro tipo distinto de normalización al que ya habíamos probado anteriormente. Vamos a realizar una normalización $BoxCox$, que además ayuda a reducir el sesgo de las variables.
+Como podemos ver, hemos mejorado tanto la precisión como la kappa. Para intentar mejorarlo aún más vamos a proceder a aplicar otro tipo distinto de normalización distinta al que ya habíamos probado anteriormente. Vamos a realizar una normalización usando $preProcess$ de caret con el metodo range:
 
 ```{r}
+# Aplicar la transformación Box-Cox a las variables numéricas
+preprocess <- preProcess(credit.Datos.Train.gbm, method = "range")
+
+# Transformar los datos de entrenamiento
+credit.Datos.Train.gbm.normalizado <- predict(preprocess, credit.Datos.Train.gbm)
+credit.Datos.Test.gbm.normalizado <- predict(preprocess, credit.Datos.Test.gbm)
+
+
+# Verificar el resultado
+summary(credit.Datos.Test.gbm.normalizado)
+
+```
+La normalización ha escalado correctamente las variables numéricas entre 0 y 1.
+Procedemos a volver a evaluar el modelo con esta nueva transformación:
+
+```{r}
+set.seed(1234)
+
+gbm_model <- train(
+    V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
+    data = credit.Datos.Train.gbm.normalizado,
+    method = "gbm",
+    trControl = control,
+    tuneLength = 5,
+    verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
+    )
+
+# Realizar predicciones en el conjunto de prueba
+gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.gbm.normalizado)
+
+# Calcular la matriz de confusión
+confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
 
 ```
 
+Como vemos, esta transformación no ha mejorado el modelo, sino que se ha mantenido todo igual tanto kappa con la precisión de clasificación. La normalización no ha afectado el rendimiento del modelo GBM porque este algoritmo no depende de la escala de las variables, ya que trabaja con árboles de decisión que dividen los datos en función de umbrales. Aunque no mejora directamente el modelo, puede ayudar a estabilizar cálculos numéricos, facilitar la interpretación de las variables y preparar los datos para combinar con otros algoritmos que sí sean sensibles a la escala. En este caso, su impacto ha sido neutral porque GBM es robusto a diferencias en la escala de las variables.
+
+Podríamos probar a reducir el sesgo de las variables, sin embargo, la reducción del sesgo no mejora el modelo GBM porque este algoritmo es robusto a distribuciones sesgadas, ya que toma decisiones basadas en divisiones por umbrales y no en la escala o forma de las variables. Además, las transformaciones aplicadas podrían reducir la variabilidad importante en las variables, afectando su capacidad predictiva. En este caso, el rendimiento del modelo probablemente está limitado por otros factores.
+
+Por último, para intentar mejorar aún más el rendimiento con este preprocesado vamos a intentar "tunear" los hiperparámetros a ver que conseguimos obtener. Vamos a aplicar una grid search enfocada en buscar combinaciones de hiperparámetros cercanas a la elegida automáticamente por el modelo para intentar conseguir mejor rendimiento.
+
+```{r}
+# Grid ajustado alrededor de los valores óptimos
+tune_grid <- expand.grid(
+  n.trees = c(90, 100, 110),            # Ajuste en el número de árboles
+  interaction.depth = c(2, 3, 4),       # Ajuste leve en profundidad
+  shrinkage = c(0.08, 0.1, 0.12),       # Tasa de aprendizaje cercana a 0.1
+  n.minobsinnode = c(8, 10, 12)         # Observaciones mínimas por nodo
+)
+
+# Validación cruzada más robusta
+control <- trainControl(method = "cv", number = 10)  # Validación cruzada de 10 pliegues
+
+# Entrenar el modelo GBM
+set.seed(1234)
+gbm_tuned <- train(
+  V16 ~ ., 
+  data = credit.Datos.Train.gbm.normalizado,
+  method = "gbm",
+  trControl = control,
+  tuneGrid = tune_grid,
+  verbose = FALSE
+)
+
+plot(gbm_tuned)
+
+```
+número de iteraciones (# Boosting Iterations), tasa de aprendizaje (shrinkage), y número mínimo de observaciones por nodo (n.minobsinnode) afectan la precisión del modelo en validación cruzada. Observamos que el rendimiento es más consistente y alto para combinaciones con interaction.depth = 4, shrinkage = 0.1, y n.minobsinnode = 8, especialmente alrededor de 100 iteraciones. Esto sugiere que estas configuraciones balancean bien la capacidad predictiva y la generalización del modelo, mientras que ajustes más bajos en interaction.depth o n.minobsinnode tienden a reducir la precisión. 
+
+Vamos a ver la precisión sobre el conjunto de test:
+
+```{r}
+# Realizar predicciones en el conjunto de prueba
+gbm_predictions <- predict(gbm_tuned, newdata = credit.Datos.Test.gbm.normalizado)
+
+# Calcular la matriz de confusión
+confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
+
+
+```
+
+Los resultados muestran una **precisión** del **87.59%** en el conjunto de test, lo que indica un buen rendimiento del modelo. La sensibilidad es del 85.53%, lo que refleja que el modelo identifica correctamente la mayoría de los casos positivos, y la especificidad es del 90.16%, lo que muestra una buena capacidad para detectar negativos. El valor predictivo positivo (PPV) del 91.55% y el valor predictivo negativo (NPV) del 83.33% confirman que las predicciones son confiables en ambas clases. El índice Kappa de 0.7508 sugiere un acuerdo sustancial entre predicciones y datos reales, y el p-valor del test de McNemar (0.332) indica que no hay diferencias significativas entre las tasas de error de las clases. Estos resultados validan que el modelo tiene un buen equilibrio entre sensibilidad y especificidad, logrando una precisión balanceada del 87.85%.
+
+# Elección del modelo final
