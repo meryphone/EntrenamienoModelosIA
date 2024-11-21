@@ -1180,11 +1180,11 @@ set.seed(1234)
 control <- trainControl(method = "cv", number = 10)
 
 modelo_rf_cv <- train(
-    V16 ~ .,                           
+    V16 ~ .,
     data = credit.Datos.Train.Rf,
     method = "rf",
     trControl = control,
-    tuneLength = 5                       
+    tuneLength = 5
 )
 
 ```
@@ -1223,9 +1223,16 @@ confusionMatrix(predicciones, credit.Datos.Test$V16)
 ```
 
 El modelo tiene una precisión del 78.83%, lo que significa que acertó en casi 8 de cada 10 predicciones. La sensibilidad es alta (88.16%), indicando que detecta bien los casos positivos, pero su especificidad es menor (67.21%), lo que sugiere que le cuesta un poco más identificar los negativos correctamente. El valor Kappa de 0.56 muestra una concordancia moderada entre las predicciones y las etiquetas reales. En general, el modelo funciona bien en detectar positivos, pero podría mejorarse en su capacidad para distinguir negativos.
+### Obteniendo los mejores hiperparámetros
 
+Para continuar, vamos a analizar que hiperparámetros se pueden ajustar en el modelo GBM.
+Para ello, ejecutamos el siguiente comando:
 ```{r}
-library(caret)
+modelLookup(("nnet"))
+```
+
+Como observamos tenemos cuatro hiperpárametros disponibles para configurar. Los cuatro hiperparámetros que podemos ajustar en el modelo gbm son: **n.trees**, que define el número de iteraciones o árboles en el proceso de boosting, lo que controla la complejidad y capacidad de ajuste del modelo; **interaction.depth**, que establece la profundidad máxima de cada árbol, determinando hasta qué punto el modelo puede capturar interacciones complejas entre variables; **shrinkage**, también conocido como tasa de aprendizaje, que reduce el impacto de cada árbol en la predicción final, ayudando a evitar el sobreajuste y permitiendo que el modelo aprenda de manera más gradual; y **n.minobsinnode**, que especifica el número mínimo de observaciones requeridas en un nodo terminal, lo cual ayuda a regular la complejidad de los árboles y reduce el riesgo de sobreajuste ajustando la granularidad de las divisiones. Estos parámetros nos permiten controlar la flexibilidad y precisión del modelo.
+```{r}
 
 # Definir un grid de hiperparámetros
 grid <- expand.grid(
@@ -1297,11 +1304,11 @@ confusionMatrix(predicciones_final, credit.Datos.Test$V16)
 ```{r}
 set.seed(1234)
 knn_model <- train(
-    V16 ~ .,                          # Reemplaza `V16` con tu variable objetivo
+    V16 ~ .,                          
     data = credit.Datos.Train.Normalizados,
     method = "knn",
     trControl = control,
-    tuneLength = 10                   # Ajusta automáticamente k en un rango de 10 valores
+    tuneLength = 10                   
 )
 ```
 
@@ -1321,6 +1328,7 @@ La matriz de confusión del modelo KNN muestra una precisión del 78.1%, lo que 
 
 ```{r}
 set.seed(1234)
+suppressWarnings({
 gbm_model <- train(
     V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
     data = credit.Datos.Train.Normalizados,
@@ -1328,7 +1336,7 @@ gbm_model <- train(
     trControl = control,
     tuneLength = 5,
     verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
-)
+)})
 
 ```
 ```{r}
@@ -1341,53 +1349,57 @@ confusionMatrix(gbm_predictions, credit.Datos.Test.Normalizados$V16)
 
 ```
 
-El modelo GBM ha obtenido una precisión del 79.56%, lo que significa que aproximadamente el 80% de las predicciones coinciden con las etiquetas reales. La sensibilidad es del 86.84%, lo que indica que el modelo es bastante bueno detectando los casos positivos. La especificidad es del 70.49%, lo cual muestra que, aunque es efectivo identificando los negativos, tiene margen para mejorar. El valor predictivo positivo (78.57%) y el valor predictivo negativo (81.13%) indican que el modelo predice con razonable confianza tanto los positivos como los negativos. El índice kappa de 0.5809 sugiere un acuerdo moderado entre las predicciones del modelo y las etiquetas reales. En general, el modelo presenta un rendimiento sólido pero puede mejorarse, especialmente en la precisión de los negativos.
 
+El modelo tiene una precisión del 84.67%, lo que significa que predice correctamente el 84.67% de los casos. La sensibilidad es del 78.95%, indicando que identifica bien los negativos, mientras que la especificidad es del 91.8%, reflejando una buena capacidad para detectar positivos. El valor predictivo positivo es del 92.31%, lo que muestra que la mayoría de las predicciones negativas son correctas, y el valor predictivo negativo es del 77.78%, indicando que algunos positivos predichos podrían no ser precisos. La métrica Kappa, de 0.6951, sugiere un buen nivel de concordancia entre predicciones y valores reales. Aunque los resultados son sólidos, la sensibilidad podría mejorarse para equilibrar mejor las predicciones.
 
-### Obteniendo los mejores hiperparámetros
+### Preprocesado para mejorar GBM
 
-Para continuar, vamos a analizar que hiperparámetros se pueden ajustar en el modelo GBM.
-Para ello, ejecutamos el siguiente comando:
+Para intentar mejorar los resultados obtenidos por GBM vamos a realizar un nuevo preprocesado de manera experimental a ver que logramos obtener.
+
+Para comenzar, vamos a eliminar las variables que el modelo considera menos importantes
 ```{r}
-modelLookup(("gbm"))
+# Calcular la importancia de las variables directamente desde gbm
+importancia_directa <- summary(gbm_model$finalModel)  # Si entrenaste con caret
+
 ```
 
-Como observamos tenemos cuatro hiperpárametros disponibles para configurar. Los cuatro hiperparámetros que podemos ajustar en el modelo gbm son: **n.trees**, que define el número de iteraciones o árboles en el proceso de boosting, lo que controla la complejidad y capacidad de ajuste del modelo; **interaction.depth**, que establece la profundidad máxima de cada árbol, determinando hasta qué punto el modelo puede capturar interacciones complejas entre variables; **shrinkage**, también conocido como tasa de aprendizaje, que reduce el impacto de cada árbol en la predicción final, ayudando a evitar el sobreajuste y permitiendo que el modelo aprenda de manera más gradual; y **n.minobsinnode**, que especifica el número mínimo de observaciones requeridas en un nodo terminal, lo cual ayuda a regular la complejidad de los árboles y reduce el riesgo de sobreajuste ajustando la granularidad de las divisiones. Estos parámetros nos permiten controlar la flexibilidad y precisión del modelo.
+Como podemos ver, las variables V13, V6 y V4 son de una baja importancia para el modelo, además, nos advertía de esto previamente con diferentes $warning$ al entrenarlo, por lo que hemos tenido que poner $suppressWarning$ por motivos de pulcridad de la salida.
+
 ```{r}
+credit.Datos.Train.gbm = credit.Datos.Train
+credit.Datos.Test.gbm = credit.Datos.Test
 
-# Establecer un control de entrenamiento con validación cruzada de 10 pliegues
-control <- trainControl(method = "cv", number = 10)
-
-# Definir un grid de búsqueda más amplio para mejorar la precisión
-tuneGrid <- expand.grid(
-  n.trees = seq(100, 1000, by = 100),              # Número de árboles
-  interaction.depth = seq(1, 5, by = 1),           # Profundidad del árbol
-  shrinkage = c(0.05, 0.1, 0.2, 0.3),              # Tasa de aprendizaje
-  n.minobsinnode = c(5, 10, 15)                    # Mínimo de observaciones en nodo final
-)
-
-# Entrenar el modelo gbm usando el grid de hiperparámetros
-set.seed(123)
-modelo_gbm <- train(
-  V16 ~ ., 
-  data = credit.Datos.Train.Normalizados,
-  method = "gbm",
-  trControl = control,
-  tuneGrid = tuneGrid,
-  verbose = FALSE
-)
-
-# Ver los mejores hiperparámetros encontrados
-print(modelo_gbm)
-
-# Evaluar el modelo con el conjunto de prueba
-pred <- predict(modelo_gbm, newdata = credit.Datos.Test.Normalizados)
-confusionMatrix(pred, credit.Datos.Test.Normalizados$V16)
+# Eliminar las columnas específicas por nombre
+credit.Datos.Train.gbm <- credit.Datos.Train.gbm[, !colnames(credit.Datos.Train.gbm) %in% c("V4", "V6", "V13")]
+credit.Datos.Test.gbm <- credit.Datos.Test.gbm[, !colnames(credit.Datos.Test.gbm) %in% c("V4", "V6", "V13")]
 
 ```
+
+Tras eliminar las variables, procedemos a hacer otra prueba de entrenamiento para ver los resultados del modelo:
 ```{r}
-predicciones <- predict(modelo_gbm_tuned, newdata = credit.Datos.Test.Normalizados)
-confusionMatrix(predicciones, credit.Datos.Test.Normalizados$V16)  # Ajusta `V16` al nombre de tu variable objetivo
+set.seed(1234)
+suppressWarnings({
+gbm_model <- train(
+    V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
+    data = credit.Datos.Train.gbm,
+    method = "gbm",
+    trControl = control,
+    tuneLength = 5,
+    verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
+)})
+
+print(gbm_model)
+# Realizar predicciones en el conjunto de prueba
+gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.gbm)
+
+# Calcular la matriz de confusión
+confusionMatrix(gbm_predictions, credit.Datos.Test.gbm$V16)
+
+```
+
+Como podemos ver, hemos mejorado tanto la precisión como la kappa. Para intentar mejorarlo aún más vamos a proceder a aplicar otro tipo distinto de normalización al que ya habíamos probado anteriormente. Vamos a realizar una normalización $BoxCox$, que además ayuda a reducir el sesgo de las variables.
+
+```{r}
 
 ```
 
