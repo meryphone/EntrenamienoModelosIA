@@ -1,7 +1,7 @@
 ---
 title: "Proyecto AC"
 author:
-  - "Maria Capilla Zapata"
+  - "María Capilla Zapata"
   - "Gloria Sánchez Alonso"
   - "Samuel Avilés Conesa"
 date: "`r Sys.Date()`"
@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 En este documento blas blas blas.... CUANDO TERMINEMOS
 
-## Carga de libreriías necesarias
+## Carga de librerías necesarias
 
 ```{r}
 library(ggplot2)
@@ -1394,7 +1394,19 @@ confusionMatrix(predicciones_final, credit.Datos.Test$V16)
 
 ```
 
-Los resultados muestran una precisión del 87.59% en el conjunto de test, indicando un rendimiento sólido del modelo. La sensibilidad es del 88.16%, lo que refleja que el modelo identifica correctamente la mayoría de los casos positivos, mientras que la especificidad es del 86.89%, mostrando una buena capacidad para detectar negativos. El valor predictivo positivo (PPV) del 89.33% y el valor predictivo negativo (NPV) del 85.18% confirman que las predicciones son confiables en ambas clases. El índice Kappa de 0.7492 sugiere un acuerdo sustancial entre las predicciones del modelo y los valores reales. Además, el p-valor del test de McNemar (1) indica que no hay diferencias significativas entre las tasas de error de las clases. Estos resultados validan que el modelo tiene un equilibrio adecuado entre sensibilidad y especificidad, logrando una precisión balanceada del 87.52%.
+Los resultados muestran una precisión del 87.59% en el conjunto de test,
+indicando un rendimiento sólido del modelo. La sensibilidad es del
+88.16%, lo que refleja que el modelo identifica correctamente la mayoría
+de los casos positivos, mientras que la especificidad es del 86.89%,
+mostrando una buena capacidad para detectar negativos. El valor
+predictivo positivo (PPV) del 89.33% y el valor predictivo negativo
+(NPV) del 85.18% confirman que las predicciones son confiables en ambas
+clases. El índice Kappa de 0.7492 sugiere un acuerdo sustancial entre
+las predicciones del modelo y los valores reales. Además, el p-valor del
+test de McNemar (1) indica que no hay diferencias significativas entre
+las tasas de error de las clases. Estos resultados validan que el modelo
+tiene un equilibrio adecuado entre sensibilidad y especificidad,
+logrando una precisión balanceada del 87.52%.
 
 ## K-Nearest-Neighbors (KNN)
 
@@ -1714,7 +1726,6 @@ Para seleccionar el modelo final comenzaremos realizando una comparación
 de todos los modelos entrenados.
 
 ```{r}
-# Crear un objeto resamples con los modelos
 resultados <- resamples(list(
   KNN = knn_model,
   GBM = gbm_model_original,
@@ -1725,3 +1736,54 @@ resultados <- resamples(list(
 ))
 
 ```
+
+```{r}
+# Instalar si no tienes gridExtra
+if(!require(gridExtra)) install.packages("gridExtra")
+
+# Crear cada gráfico por separado
+bw_plot <- bwplot(resultados, metric = "Kappa", main = "Boxplot - Kappa") # Boxplot
+density_plot <- densityplot(resultados, metric = "Accuracy", main = "Density Plot - Accuracy") # Densidad Accuracy
+density_plot_kappa <- densityplot(resultados, metric = "Kappa", main = "Density Plot - Kappa") # Densidad Kappa
+dot_plot <- dotplot(resultados, metric = "Accuracy", main = "Dotplot - Accuracy") # Dotplot
+
+# Primer par de gráficos
+gridExtra::grid.arrange(bw_plot, density_plot, ncol = 2)
+
+
+```
+
+```{r}
+# Segundo par de gráficos
+gridExtra::grid.arrange(density_plot_kappa, dot_plot, ncol = 2)
+```
+
+Las gráficas están comparando diferentes modelos usando métricas clave
+como Kappa y Accuracy. En el Boxplot, se observa que los modelos GBM
+ajustado y RandomForest tienen los valores más altos y consistentes de
+Kappa, con una menor dispersión, lo que indica que estos modelos son más
+confiables y robustos. Por otro lado, los modelos NNET y NNET ajustado
+tienen una distribución más variable y valores de Kappa inferiores, lo
+que sugiere un rendimiento menos estable en comparación con los modelos
+anteriores.
+
+En el Density Plot de Accuracy, las curvas confirman que el modelo GBM
+ajustado tiene la densidad más concentrada hacia valores altos de
+precisión, seguido de RandomForest y el modelo base de GBM. Esto implica
+que estos modelos no solo tienen mejor rendimiento promedio, sino
+también mayor consistencia entre las iteraciones. Los modelos como NNET
+y su versión ajustada presentan distribuciones más dispersas, indicando
+variabilidad en su precisión.
+
+Finalmente, el Dotplot proporciona una comparación visual de la
+precisión promedio con intervalos de confianza para cada modelo. El GBM
+ajustado destaca con la mayor precisión promedio y un intervalo de
+confianza estrecho, seguido de cerca por RandomForest. Esto refuerza que
+estos dos modelos tienen un rendimiento confiable y generalizan mejor a
+los datos. En resumen, los modelos GBM ajustado y RandomForest son los
+más efectivos y consistentes en este análisis, mientras que los demás
+modelos muestran un rendimiento aceptable pero menos competitivo.
+
+##Elección del modelo final
+
+Finalmente, basandonos en las pruebas realizadas nos decantamos por el modelo $GBM_{tuned}$ porque tiene el mejor rendimiento promedio en las gráficas y es más consistente. En el Dotplot, es el modelo con mayor precisión y un intervalo de confianza pequeño, lo que muestra que es confiable. En los Boxplots y Density Plots, también tiene valores altos y concentrados tanto en precisión como en Kappa, lo que significa que su desempeño es sólido en todas las pruebas. Aunque RandomForest también es un buen modelo, $GBM_{tuned}$ logra mejores resultados y es más estable, por eso sería la mejor opción.
