@@ -1245,23 +1245,23 @@ confusionMatrix(predicciones, credit.Datos.Test.Rf$V16)
 
 Los resultados muestran una precisión del 87.59% en el conjunto de test,
 lo que indica un buen rendimiento del modelo. La sensibilidad es
-del 85.53%, lo que refleja que el modelo identifica correctamente la
-mayoría de los casos positivos, y la especificidad es del 90.16%, lo que
+del 90.79%, lo que refleja que el modelo identifica correctamente la
+mayoría de los casos positivos, y la especificidad es del 83.61%, lo que
 muestra una buena capacidad para detectar negativos. El valor predictivo
-positivo (PPV) del 91.55% y el valor predictivo negativo (NPV)
-del 83.33% confirman que las predicciones son confiables en ambas
-clases. El índice Kappa de 0.7508 sugiere un acuerdo sustancial entre
-predicciones y datos reales, y el p-valor del test de McNemar (0.332)
+positivo (PPV) del 87.34% y el valor predictivo negativo (NPV)
+del 87.93% confirman que las predicciones son confiables en ambas
+clases. El índice Kappa de 0.7476 sugiere un acuerdo sustancial entre
+predicciones y datos reales, y el p-valor del test de McNemar (0.6276)
 indica que no hay diferencias significativas entre las tasas de error de
 las clases. Estos resultados validan que el modelo tiene un buen
 equilibrio entre sensibilidad y especificidad, logrando una precisión
-balanceada del 87.85%.
+balanceada del 87.20%.
 
 ## Redes Neuronales
 
 ```{r}
 set.seed(1234)
-modelo_nnet_tunned <- train(
+modelo_nnet <- train(
     V16 ~ .,                           # Reemplaza `Target` con tu variable objetivo
     data = credit.Datos.Train.Normalizados,
     method = "nnet",
@@ -1337,13 +1337,13 @@ mejor combinación de nodos y regularización.
       V16 ~ ., 
       data = credit.Datos.Train, 
       method = "nnet", 
-      trControl = trainControl(method = "none"), # Sin validación cruzada, entrenamos directamente
+      trControl = control,
       tuneGrid = expand.grid(size = size, decay = decay),
       trace = FALSE
     )
     
     # Predicciones en el conjunto de test
-    predicciones <- predict(modelo, newdata = credit.Datos.Test)
+    predicciones <- predict(modelo_nnet, newdata = credit.Datos.Test)
     
     # Calcular precisión sobre el conjunto de test usando confusionMatrix
     conf_matrix <- confusionMatrix(predicciones, credit.Datos.Test$V16)
@@ -1379,34 +1379,22 @@ size_mejor <- mejores_parametros$size
 decay_mejor <- mejores_parametros$decay
 
 set.seed(123)
-modelo_final <- train(
+nnet_tuned <- train(
   V16 ~ ., 
   data = credit.Datos.Train, 
   method = "nnet", 
-  trControl = trainControl(method = "none"), 
+  trControl = control,
   tuneGrid = expand.grid(size = size_mejor, decay = decay_mejor),
   trace = FALSE
 )
 
 # Evaluar el modelo final en el conjunto de test
-predicciones_final <- predict(modelo_final, newdata = credit.Datos.Test)
+predicciones_final <- predict(nnet_tuned, newdata = credit.Datos.Test)
 confusionMatrix(predicciones_final, credit.Datos.Test$V16)
 
 ```
 
-Los resultados muestran una precisión del 85.4% en el conjunto de test,
-lo que indica un buen rendimiento del modelo. La sensibilidad es
-del 86.84%, lo que refleja que el modelo identifica correctamente la
-mayoría de los casos positivos, y la especificidad es del 83.61%, lo que
-muestra una buena capacidad para detectar negativos. El valor predictivo
-positivo (PPV) del 86.84% y el valor predictivo negativo (NPV)
-del 83.61% confirman que las predicciones son confiables en ambas
-clases. El índice Kappa de 0.7045 sugiere un acuerdo sustancial entre
-predicciones y datos reales, y el p-valor del test de McNemar (1) indica
-que no hay diferencias significativas entre las tasas de error de las
-clases. Estos resultados validan que el modelo tiene un buen equilibrio
-entre sensibilidad y especificidad, logrando una precisión balanceada
-del 85.22%.
+Los resultados muestran una precisión del 87.59% en el conjunto de test, indicando un rendimiento sólido del modelo. La sensibilidad es del 88.16%, lo que refleja que el modelo identifica correctamente la mayoría de los casos positivos, mientras que la especificidad es del 86.89%, mostrando una buena capacidad para detectar negativos. El valor predictivo positivo (PPV) del 89.33% y el valor predictivo negativo (NPV) del 85.18% confirman que las predicciones son confiables en ambas clases. El índice Kappa de 0.7492 sugiere un acuerdo sustancial entre las predicciones del modelo y los valores reales. Además, el p-valor del test de McNemar (1) indica que no hay diferencias significativas entre las tasas de error de las clases. Estos resultados validan que el modelo tiene un equilibrio adecuado entre sensibilidad y especificidad, logrando una precisión balanceada del 87.52%.
 
 ## K-Nearest-Neighbors (KNN)
 
@@ -1732,7 +1720,7 @@ resultados <- resamples(list(
   GBM = gbm_model_original,
   GBM_tuned = gbm_tuned,
   NNET = modelo_nnet,
-  NNET_tuned = modelo_nnet_tunned,
+  NNET_tuned = nnet_tuned,
   RandomForest = modelo_rf_cv
 ))
 
