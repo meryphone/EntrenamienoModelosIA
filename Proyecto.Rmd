@@ -273,7 +273,7 @@ levels(credit$V7)
 Como podemos ver, tenemos un factor con bastantes niveles por tanto
 podríamos estar ante una clasificación por tipo de empleo o sector,
 quizás también podría ser un identificador de la sucursal del banco en
-la que se solicitó el préstamo... .
+la que se solicitó el préstamo...
 
 ```{r}
 prop.table(table(credit$V7))*100
@@ -293,7 +293,7 @@ el banco.
 Para está variable, al ser numérica y al poder tomar cualquier valor, lo
 analizamos en un histograma. Dado que los valores son pequeños, esta
 variable podría representar los años que lleva trabajando, número de
-transacciones... S
+transacciones...
 
 ```{r}
 ggplot(credit, aes(x = V8)) +
@@ -1261,7 +1261,7 @@ balanceada del 87.85%.
 
 ```{r}
 set.seed(1234)
-modelo_nnet <- train(
+modelo_nnet_tunned <- train(
     V16 ~ .,                           # Reemplaza `Target` con tu variable objetivo
     data = credit.Datos.Train.Normalizados,
     method = "nnet",
@@ -1333,7 +1333,7 @@ mejor combinación de nodos y regularización.
     
     # Entrenar el modelo con los hiperparámetros actuales
     set.seed(123)
-    modelo <- train(
+    modelo_nnet <- train(
       V16 ~ ., 
       data = credit.Datos.Train, 
       method = "nnet", 
@@ -1431,22 +1431,48 @@ confusionMatrix(knn_predictions, credit.Datos.Test.Normalizados$V16)
 
 ```
 
-La matriz de confusión del modelo KNN muestra una precisión del 78.1%,
-lo que significa que el modelo acertó en la mayoría de las predicciones,
-pero todavía tiene margen de mejora. La sensibilidad es de 88.2%,
-indicando que el modelo identifica bien las instancias positivas,
-mientras que la especificidad es de 65.6%, lo que sugiere que tiene más
-dificultades en identificar correctamente las instancias negativas. El
-valor Kappa de 0.548 indica un acuerdo moderado entre las predicciones y
-los valores reales. En general, el modelo es bastante bueno en predecir
-la clase positiva, aunque tiene menos precisión con la clase negativa.
+Los resultados del modelo **k-Nearest Neighbors (k-NN)** muestran una
+precisión del 88.32% en el conjunto de test, indicando un rendimiento
+robusto. La sensibilidad es del 90.79%, lo que refleja que el modelo
+identifica correctamente la mayoría de los casos positivos, mientras que
+la especificidad es del 85.25%, mostrando una buena capacidad para
+detectar negativos. El valor predictivo positivo (PPV) es del 88.46%, y
+el valor predictivo negativo (NPV) es del 88.14%, lo que confirma que
+las predicciones son confiables en ambas clases. El índice Kappa de
+0.7628 sugiere un acuerdo sustancial entre las predicciones del modelo y
+los datos reales. Además, el p-valor del test de McNemar (0.8026) indica
+que no hay diferencias significativas entre las tasas de error de las
+clases. Estos resultados validan que el modelo tiene un excelente
+balance entre sensibilidad y especificidad, logrando una precisión
+balanceada del 88.02%. El mejor valor de hiperparámetro `k` encontrado
+fue 5, lo que permite capturar una buena cantidad de vecinos cercanos
+para la clasificación sin perder generalización.
+
+```{r}
+plot(knn_model)
+```
+
+La gráfica muestra cómo varía la precisión del modelo **k-Nearest
+Neighbors (k-NN)** en validación cruzada a medida que se ajusta el
+número de vecinos (`#Neighbors`, representado por el hiperparámetro
+`k`). Se observa que la mayor precisión (\~85.5%) se obtiene con k = 5,
+lo que indica que considerar 5 vecinos para la clasificación balancea
+bien la capacidad del modelo para generalizar. A medida que `k` aumenta,
+la precisión disminuye de forma notable, alcanzando valores mínimos
+alrededor de `k = 11` y `k = 19`, lo que sugiere que usar demasiados
+vecinos puede diluir la influencia de los puntos más cercanos y
+relevantes. Este comportamiento refleja que valores de `k` muy altos
+pueden sobre-suavizar la clasificación, mientras que valores más bajos
+permiten capturar mejor los patrones locales en los datos. Por lo tanto,
+el modelo es más efectivo con valores pequeños de `k`, particularmente k
+= 5 en este caso.
 
 ## Gradient Boosting Machine (GBM)
 
 ```{r}
 set.seed(1234)
 suppressWarnings({
-gbm_model <- train(
+gbm_model_original <- train(
     V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
     data = credit.Datos.Train.Normalizados,
     method = "gbm",
@@ -1458,9 +1484,9 @@ gbm_model <- train(
 ```
 
 ```{r}
-print(gbm_model)
+print(gbm_model_original)
 # Realizar predicciones en el conjunto de prueba
-gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.Normalizados)
+gbm_predictions <- predict(gbm_model_original, newdata = credit.Datos.Test.Normalizados)
 
 # Calcular la matriz de confusión
 confusionMatrix(gbm_predictions, credit.Datos.Test.Normalizados$V16)
@@ -1489,7 +1515,7 @@ menos importantes
 
 ```{r}
 # Calcular la importancia de las variables directamente desde gbm
-importancia_directa <- summary(gbm_model$finalModel)  # Si entrenaste con caret
+importancia_directa <- summary(gbm_model_original$finalModel)  # Si entrenaste con caret
 
 ```
 
@@ -1576,7 +1602,11 @@ confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
 
 ```
 
-Como vemos, esta transformación no ha mejorado el modelo, sino que se ha
+```{r}
+
+```
+
+vemos, esta transformación no ha mejorado el modelo, sino que se ha
 mantenido todo igual tanto kappa con la precisión de clasificación. La
 normalización no ha afectado el rendimiento del modelo GBM porque este
 algoritmo no depende de la escala de las variables, ya que trabaja con
@@ -1598,9 +1628,34 @@ factores.
 
 Por último, para intentar mejorar aún más el rendimiento con este
 preprocesado vamos a intentar "tunear" los hiperparámetros a ver que
-conseguimos obtener. Vamos a aplicar una grid search enfocada en buscar
-combinaciones de hiperparámetros cercanas a la elegida automáticamente
-por el modelo para intentar conseguir mejor rendimiento.
+conseguimos obtener.
+
+Para comenzar vamos a analizar los hiperparámetros que podemos
+modificar:
+
+```{r}
+modelLookup(("gbm"))
+```
+
+Como observamos tenemos cuatro hiperpárametros disponibles para
+configurar. Los cuatro hiperparámetros que podemos ajustar en el modelo
+gbm son: **n.trees**, que define el número de iteraciones o árboles en
+el proceso de boosting, lo que controla la complejidad y capacidad de
+ajuste del modelo; **interaction.depth**, que establece la profundidad
+máxima de cada árbol, determinando hasta qué punto el modelo puede
+capturar interacciones complejas entre variables; **shrinkage**, también
+conocido como tasa de aprendizaje, que reduce el impacto de cada árbol
+en la predicción final, ayudando a evitar el sobreajuste y permitiendo
+que el modelo aprenda de manera más gradual; y **n.minobsinnode**, que
+especifica el número mínimo de observaciones requeridas en un nodo
+terminal, lo cual ayuda a regular la complejidad de los árboles y reduce
+el riesgo de sobreajuste ajustando la granularidad de las divisiones.
+Estos parámetros nos permiten controlar la flexibilidad y precisión del
+modelo.
+
+Vamos a aplicar una **grid search** enfocada en buscar las combinaciones
+de hiperparámetros cercanas a la elegida automáticamente por el modelo
+para intentar conseguir mejor rendimiento.
 
 ```{r}
 # Grid ajustado alrededor de los valores óptimos
@@ -1629,7 +1684,7 @@ plot(gbm_tuned)
 
 ```
 
-número de iteraciones (\# Boosting Iterations), tasa de aprendizaje
+El número de iteraciones (\# Boosting Iterations), tasa de aprendizaje
 (shrinkage), y número mínimo de observaciones por nodo (n.minobsinnode)
 afectan la precisión del modelo en validación cruzada. Observamos que el
 rendimiento es más consistente y alto para combinaciones con
@@ -1666,3 +1721,19 @@ sensibilidad y especificidad, logrando una precisión balanceada del
 87.85%.
 
 # Elección del modelo final
+
+Para seleccionar el modelo final comenzaremos realizando una comparación
+de todos los modelos entrenados.
+
+```{r}
+# Crear un objeto resamples con los modelos
+resultados <- resamples(list(
+  KNN = knn_model,
+  GBM = gbm_model_original,
+  GBM_tuned = gbm_tuned,
+  NNET = modelo_nnet,
+  NNET_tuned = modelo_nnet_tunned,
+  RandomForest = modelo_rf_cv
+))
+
+```
