@@ -24,11 +24,35 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introdución
 
-En este documento blas blas blas.... CUANDO TERMINEMOS
+En este documento se abordará el análisis y preprocesamiento de la base
+de datos **Credit Approval**, con el propósito de entrenar y evaluar
+modelos clasificadores que permitan realizar predicciones precisas y
+confiables. El análisis comenzará con la carga de los datos, seguido de
+una exploración detallada de las variables, incluyendo su distribución,
+características principales y posibles inconsistencias o valores
+atípicos.
 
-## Carga de librerías necesarias
+Posteriormente, se llevarán a cabo las transformaciones necesarias para
+optimizar la calidad de los datos y mejorar su capacidad predictiva.
+Estas transformaciones incluirán la normalización, la eliminación de
+valores faltantes, la corrección de sesgos en las variables y la
+selección de características relevantes, asegurando así un conjunto de
+datos limpio y adecuado para los modelos.
+
+A continuación, se entrenarán y evaluarán cuatro modelos clasificadores:
+**Random Forest**, **Redes Neuronales Artificiales** (nnet), **Gradient
+Boosting Machines** (GBM) y **K-Nearest Neighbors** (k-NN). Se realizará
+un ajuste de hiperparámetros para ciertos modelos con el fin de
+maximizar su rendimiento, seguido de una comparación exhaustiva de los
+resultados obtenidos. Finalmente, se seleccionará el modelo que
+demuestre la mejor capacidad de generalización, equilibrando precisión,
+robustez y consistencia, proporcionando una solución óptima para la
+clasificación de futuros datos.
+
+## Carga de librerías necesarias.
 
 ```{r}
+suppressWarnings({ # Para no manchar la salida.
 library(ggplot2)
 library(dplyr)
 library(GGally)
@@ -37,14 +61,15 @@ library(RANN)
 library(e1071)
 library(randomForest)
 library(nnet)
+})
 ```
 
-## Carga de la base de datos.
+## Carga de la base de datos
 
-Primeramente comenzamos cargando la base de datos, guardando en
-distintas variables los datos que utilizaremos para el entrenamiento y
-para probar el modelo. Añadimos la opción "na.strings=?" para sustituir
-los valores desconocidos por NA y poder ser procesados posteriormente.
+Para comenzar, cargamos la base de datos, guardando en distintas
+variables los datos que utilizaremos para el entrenamiento y para probar
+el modelo. Añadimos la opción "na.strings=?" para sustituir los valores
+desconocidos por NA y poder ser procesados posteriormente.
 
 ```{r}
 credit = read.table("crx.data", sep = ",",na.strings = "?")
@@ -52,8 +77,7 @@ credit = read.table("crx.data", sep = ",",na.strings = "?")
 
 # Preprocesado de datos(I): Tratamiento inicial de la BBDD
 
-Primero tenemos que analizar que variables tiene contiene la base de
-datos
+Primero tenemos que analizar que variables contiene la base de datos:
 
 ```{r}
 head(credit)
@@ -97,7 +121,7 @@ head(credit)
 ```
 
 Una vez corregido el tipos de datos y añadido las categorías faltantes
-nos queda la siguiente base de datos:
+nos queda la siguiente:
 
 ```{r}
 summary(credit)
@@ -106,8 +130,9 @@ str(credit)
 
 ## Desanonimización de las variables
 
-Para continuar con el análisis inicial de la BBDD, vamos a intentar
-"averiguar" el posible significado de cada una de las variables.
+Para continuar con el análisis inicial, vamos a intentar averiguar o
+suponer el posible significado de cada una de las variables. Creemos que
+esta información puede ser importante para el futuro.
 
 ### V1
 
@@ -128,7 +153,7 @@ prop.table(table(credit$V1))*100
 ```
 
 Como podemos ver tenemos una clara tendencia al valor 'b'. En el
-contexto de la BBDD, podría referirse al genero. Descartamos la
+contexto de la BBDD, podría referirse al género. Descartamos la
 empleabilidad dado que un 30% de personas que estén en paro le concedan
 un préstamo parece demasiado alto. Dado que la base de datos tiene
 información de los años 90 si que podría encajar que un 70% fueran
@@ -151,10 +176,10 @@ ggplot(credit, aes(x = V2)) +
 ```
 
 Esta variable podría representar facilmente la edad ya que sigue una
-distribución normal alrededor de los 20 años. También podría ser la el
-dinero que tiene,los ingresos... La edad podrñia ser importante en base
-a tomar la decisión de aprobar el credito o no ya que los clientes
-jovenes suelen tener mas riesgo, los clientes mayores suelen tener mas
+distribución normal en torno a los 20 años. También podría ser el dinero
+que tiene,los ingresos, etc La edad podría ser importante en base a
+tomar la decisión de aprobar el credito o no ya que los clientes jovenes
+suelen tener mas riesgo, los clientes mayores suelen tener mas
 estabilidad laboral, lo cual seria atractivo para largo plazo. También
 tendría sentido que los clientes más mayores pidan menos creditos y la
 longevidad es menor y el número de personas en rangos de edad avanzada
@@ -195,26 +220,31 @@ continuación:
 levels(credit$V4)
 ```
 
-En el contexto de la base de datos esta variable podría ser varias
-cosas: el sexo del cliente, si está en paro o no... Dado que es binaria.
-Para descartar opciones vamos a hacer una tabla de proporciones a ver
-como se distribuyen los valores.
+En el contexto en el que estamos, esta variable podría ser varias cosas:
+el sexo del cliente, si está en paro o no... Dado que es binaria. Para
+descartar opciones vamos a hacer una tabla de proporciones a ver como se
+distribuyen los valores.
 
 ```{r}
 prop.table(table(credit$V4))*100
 ```
 
-Como podemos ver tenemos una clara tendencia al valor 'u'. En el
-contexto de la BBDD, podría deberse al estado civil. Descartamos la
-empleabilidad dado que un 30% de personas que estén en paro le concedan
-un préstamo parece demasiado alto. Al ser justo 4 valores nos cuadra que
-sea el estado civil, y que los valores que pueda tomar sean:divorciado,
-casado, soltero y viudo. Las razones por las que el banco guarda esto
-podría ser: - Estabilidad - Medir el riesgo - Predecir comportamientos
+Como podemos ver tenemos una clara tendencia al valor 'u'. Podría
+deberse al estado civil. Descartamos la empleabilidad dado que un 30% de
+personas que estén en paro le concedan un préstamo parece demasiado
+alto. Al ser justo 4 valores nos cuadra que sea el estado civil, y que
+los valores que pueda tomar sean:divorciado, casado, soltero y viudo.
+Las razones por las que el banco guarda esto podría ser:
+
+-   Estabilidad
+
+-   Medir el riesgo
+
+-   Predecir comportamientos
 
 ### V5
 
-Continuando con V5, estamos ante un factor por lo que vamos a ver sus
+Continuando con V5, estamos ante un factor, por lo que vamos a ver sus
 niveles:
 
 ```{r}
@@ -245,12 +275,12 @@ Para comenzar con V6 analizamos sus factores:
 levels(credit$V6)
 ```
 
-La varible V6 podría estar codificando el estilo de vida financiero del
+La variable V6 podría estar codificando el estilo de vida financiero del
 cliente, es decir, si el cliente es ahorrador, conservador, inversor,
 etc. También puede estar relacionada con nacionalidad de los clientes o
-con el estado de residencia de estos ya que la base de datos que estamos
-tratando es la de un banco en Estados Unidos. Para tener una mejor idea
-de lo que se refiere vamos a hacer una tabla de frecuencias.
+con el estado de residencia de estos, ya que la base de datos que
+estamos tratando es la de un banco en Estados Unidos. Para tener una
+mejor idea de lo que se refiere vamos a hacer una tabla de frecuencias.
 
 ```{r}
 prop.table(table(credit$V6))*100
@@ -284,10 +314,6 @@ encuentra en la 'v' por tanto también podríamos estar ante una variable
 que determine la nacionalidad del cliente dado que en gran parte estos
 deben ser del mismo pais que el banco.
 
-Hay muchas opciones para esta variable pero esta claro que con esta
-cantidad de opciones no puede ser algo muy importante que pueda guardar
-el banco.
-
 ### V8
 
 Para está variable, al ser numérica y al poder tomar cualquier valor, lo
@@ -303,10 +329,10 @@ ggplot(credit, aes(x = V8)) +
 
 ```
 
-Si asumimos que son los años que llevan trabajando los clientes, la
-mayoría de ellos llevan muy poco tiempo, lo que podría suponer riesgo ya
-que tienen menos estabilidad. Esto podría ayudar al banco para decidirse
-entre darle el credito o no, ya que es un factor importante.
+Si asumimos que es la experiencia laboral de los clientes, la mayoría de
+ellos llevan muy poco tiempo, lo que podría suponer riesgo ya que tienen
+menos estabilidad. Esto podría ayudar al banco para decidirse entre
+darle el credito o no, ya que es un factor importante.
 
 ### V9
 
@@ -403,7 +429,7 @@ determinar que podría ser.
 
 ### V14
 
-Esta variable es numerica por lo tanto hacemos el histograma para poder
+Esta variable es numérica por lo tanto, hacemos el histograma para poder
 analizarlo mejor:
 
 ```{r}
@@ -486,20 +512,21 @@ Para estar seguros de la distribución que sigue v2, creamos un
 histograma de dicha variable:
 
 ```{r}
-myhist = ggplot(data=na.omit(credit),aes(V2)) +
-  geom_histogram(col="orange",fill="orange",alpha=0.2) + 
-  labs(title="Histograma para V2", y="Count") 
-myhist = myhist + geom_vline(xintercept = mean(credit$V2),
-                             col="blue",linetype="dashed")
-myhist = myhist + geom_vline(xintercept = median(credit$V2),
-                             col="red",linetype="dashed")
+myhist = ggplot(data = na.omit(credit), aes(V2)) +
+  geom_histogram(binwidth = 0.5, col = "orange", fill = "orange", alpha = 0.2) + 
+  labs(title = "Histograma para V2", y = "Count") +
+  geom_vline(xintercept = mean(na.omit(credit$V2)), col = "blue", linetype = "dashed") +
+  geom_vline(xintercept = median(na.omit(credit$V2)), col = "red", linetype = "dashed")
+
 myhist
+
+
 ```
 
 La distribución es **asimétrica a la derecha** o **sesgada
 positivamente,** como se había inferido anteriormente. La mayoría de los
-valores están en el rango bajo (de 15 a 40), y solo unos pocos valores
-están en el rango superior.
+valores están en el rango bajo (de 15 a 40), y hay poca densidad en el
+rango superior.
 
 Hay algunos valores dispersos hacia la derecha que elevan el promedio,
 lo que sugiere que existen **valores atípicos** o extremos en el extremo
@@ -572,6 +599,24 @@ myhist <- myhist + geom_vline(xintercept = median(credit$V3),
 myhist
 ```
 
+La mayoría de los valores están concentrados cerca de cero, lo que
+indica que **V3** tiene una distribución sesgada hacia la izquierda
+(sesgo positivo). Las barras más altas corresponden a los valores más
+pequeños, mientras que los valores más grandes son menos frecuentes, lo
+que sugiere que los datos contienen pocos valores extremos. Las líneas
+verticales trazadas representan:
+
+-   Media (línea azul): Ubicada ligeramente a la derecha de la moda,
+    confirmando el sesgo positivo.
+
+-   Mediana (línea roja): Cercana a la moda, pero ligeramente más baja
+    que la media debido al impacto de los valores altos en el cálculo de
+    la media.
+
+Esta distribución sesgada podría requerir transformaciones como la
+logarítmica si se utiliza en modelos sensibles al sesgo o para
+normalizarla.
+
 Para poder intuir si una muestra sigue una determinada distribución
 estadística se pueden usar los diagramas del tipo Q−Q.
 
@@ -581,6 +626,12 @@ ggplot(credit, aes(sample = V3)) +
   stat_qq_line(color = "blue", linetype = "dashed") +
   labs(title = "Diagrama Q-Q de V3", x = "Cuantiles Teóricos", y = "Cuantiles Muestrales")
 ```
+
+Los puntos en el gráfico no siguen la línea diagonal azul (que
+representa la distribución normal), especialmente en los extremos
+superior e inferior. Esto indica que la distribución de **V3** no es
+normal, con una marcada desviación hacia valores extremos (sesgo
+positivo), lo cual concuerda con el histograma observado anteriormente.
 
 ### Análisis V8
 
@@ -638,23 +689,24 @@ cola larga en el extremo derecho del histograma hasta valores cercanos a
 30, estos valores atípicos sería necesario limpiarlos por que ensucian
 la muestra.
 
-A su vez el diagrama QQ nos reafirma lo analizado anteriormente
-mostrando claramente como para valores mas altos los datos se alejan de
-la distribución teórica normal representada por la recta.
+El diagrama QQ nos reafirma lo analizado anteriormente mostrando
+claramente como para valores más altos los datos se alejan de la
+distribución teórica normal representada por la recta.
 
 ## Analisis multivariable
 
 ```{r}
-# Matriz de dispersión para analizar la relación entre V2, V3, V8 y V16
-ggpairs(na.omit(credit), columns = c("V2", "V3", "V8","V14","V15", "V16"),aes(color = V16, alpha = 0.6), title = "Análisis Multivariable de V2 V3 V8 V4 Y V15")
+
+ggpairs(na.omit(credit), columns = c("V2", "V3", "V8","V14","V15", "V16")
+,aes(color = V16, alpha = 0.6), title = "Análisis Multivariable de V2 V3 V8 V14 Y V15")
 
 ```
 
 Se ha coloreado el gráfico mediante la variable categórica V16 la cual
-determina si la compra fue aprobada o no.
+determina si el crédito fue aprobado o no.
 
-Las variables mas útiles para el modelo pueden ser **V2, V8, y V3** ya
-que parecen ser las más **prometedoras**, debido a que muestran ciertas
+Las variables más útiles para el modelo pueden ser **V2, V8, y V3** ya
+que parecen ser las más prometedoras, debido a que muestran ciertas
 diferencias en la distribución de las clases de V16 y tienen
 correlaciones moderadas entre sí.
 
@@ -669,16 +721,15 @@ transformación logarítmica o raíz cuadrada para reducir la dispersión y
 mejorar su manejo en el modelo.
 
 Este análisis multivariable sugiere que, para mejorar la interpretación
-y el rendimiento del modelo, sería útil **preprocesar V8,y V15,** así
-como priorizar **V2, V3, y V8** como **variables predictoras**
-principales.
+y el rendimiento del modelo, sería útil preprocesar **V8,y V15,** así
+como priorizar **V2, V3, y V8** como variables predictoras principales.
 
 # Pre-procesado de Datos (II): Tratamiento de outliers
 
-Para continuar, vamos a comenzar con el tratamiento de valorees
-atípicos. Vamos a calcular el valor limite superior e inferior para
-considerarlos atípicos. Vamos a repetir el cálculo con todas las
-variables numéricas de la BBDD.
+Para continuar, vamos a comenzar con el tratamiento de valores atípicos.
+Vamos a calcular el valor límite superior e inferior para considerarlos
+atípicos. Vamos a repetir el cálculo con todas las variables numéricas
+de la BBDD.
 
 ## Variable V2, V3 y V14
 
@@ -688,8 +739,8 @@ Q3=quantile(na.omit(credit$V2),0.75)
 RIC=Q3-Q1
 limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
-atipicosv2=na.omit(credit$V2)[na.omit(credit$V2)<limiteInferior | na.omit(credit$V2)>limiteSuperior] 
-percAtipicos=100*length(atipicosv2)/length((na.omit(credit$V2)))
+atipicos=na.omit(credit$V2)[na.omit(credit$V2)<limiteInferior | na.omit(credit$V2)>limiteSuperior] 
+percAtipicos=100*length(atipicos)/length((na.omit(credit$V2)))
 print(paste("El porcentaje de datos atípicos para V2 es = ",percAtipicos))
 
 ```
@@ -700,8 +751,8 @@ Q3=quantile(na.omit(credit$V3),0.75)
 RIC=Q3-Q1
 limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
-atipicosv3=na.omit(credit$V3)[na.omit(credit$V3)<limiteInferior | na.omit(credit$V3)>limiteSuperior] 
-percAtipicos=100*length(atipicosv3)/length((na.omit(credit$V3)))
+atipicos=na.omit(credit$V3)[na.omit(credit$V3)<limiteInferior | na.omit(credit$V3)>limiteSuperior] 
+percAtipicos=100*length(atipicos)/length((na.omit(credit$V3)))
 print(paste("El porcentaje de datos atípicos para V3 es = ",percAtipicos))
 ```
 
@@ -711,18 +762,17 @@ Q3=quantile(na.omit(credit$V14),0.75)
 RIC=Q3-Q1
 limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
-atipicosv14=na.omit(credit$V14)[na.omit(credit$V14)<limiteInferior | na.omit(credit$V14)>limiteSuperior] 
-percAtipicos=100*length(atipicosv14)/length((na.omit(credit$V14)))
+atipicos=na.omit(credit$V14)[na.omit(credit$V14)<limiteInferior | na.omit(credit$V14)>limiteSuperior] 
+percAtipicos=100*length(atipicos)/length((na.omit(credit$V14)))
 print(paste("El porcentaje de datos atípicos para V14 es = ",percAtipicos))
 ```
 
-Como podemos ver el **porcentaje de valores atípicos** es muy bajo. Por
+Como podemos ver el porcentaje de valores atípicos es muy bajo. Por
 ello, vamos a mantener los datos atípicos intactos para estas variables,
-ya que no merece la pena tratarlos al ser un porcentaje tan
-pequeño,pueden representar variabilidad real y natural en los datos. En
-caso de tratarlos, podríamos perder precisión e información valiosa
-necesaria por el modelo para aprender sobre situaciones fuera de lo
-común.
+ya que no merece la pena tratarlos al ser un porcentaje tan pequeño,ya
+que pueden representar variabilidad real y natural en los datos. En caso
+de tratarlos, podríamos perder precisión e información valiosa necesaria
+para el modelo que ayude a aprender sobre situaciones fuera de lo común.
 
 ## Variable V8
 
@@ -732,8 +782,8 @@ Q3=quantile(na.omit(credit$V8),0.75)
 RIC=Q3-Q1
 limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
-atipicosv8=na.omit(credit$V8)[na.omit(credit$V8)<limiteInferior | na.omit(credit$V8)>limiteSuperior] 
-percAtipicos=100*length(atipicosv8)/length((na.omit(credit$V8)))
+atipicos=na.omit(credit$V8)[na.omit(credit$V8)<limiteInferior | na.omit(credit$V8)>limiteSuperior] 
+percAtipicos=100*length(atipicos)/length((na.omit(credit$V8)))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
 
@@ -760,7 +810,7 @@ ggplot(credit, aes(y = V8)) +
 Confirmando lo dicho anteriormente, podemos ver como tenemos una gran
 cantidad de valores fuera de rango por la parte superior del RIC. Este
 tipo de distorsiones puede tener efectos bastante perjudiciales y puede
-ser muy conveniente eliminar estos posibles $outliers$, como veremos más
+ser muy conveniente tratar estos posibles $outliers$, como veremos más
 adelante.
 
 ## Variable V11
@@ -771,8 +821,8 @@ Q3=quantile(na.omit(credit$V11),0.75)
 RIC=Q3-Q1
 limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
-atipicosV11=na.omit(credit$V11)[na.omit(credit$V11)<limiteInferior | na.omit(credit$V11)>limiteSuperior] 
-percAtipicos=100*length(atipicosV11)/length((na.omit(credit$V11)))
+atipicos=na.omit(credit$V11)[na.omit(credit$V11)<limiteInferior | na.omit(credit$V11)>limiteSuperior] 
+percAtipicos=100*length(atipicos)/length((na.omit(credit$V11)))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
 
@@ -806,8 +856,8 @@ Q3=quantile(na.omit(credit$V15),0.75)
 RIC=Q3-Q1
 limiteInferior=Q1-1.5*RIC
 limiteSuperior=Q3+1.5*RIC
-atipicosV15=na.omit(credit$V15)[na.omit(credit$V15)<limiteInferior | na.omit(credit$V15)>limiteSuperior] 
-percAtipicos=100*length(atipicosV15)/length((na.omit(credit$V15)))
+atipicos=na.omit(credit$V15)[na.omit(credit$V15)<limiteInferior | na.omit(credit$V15)>limiteSuperior] 
+percAtipicos=100*length(atipicos)/length((na.omit(credit$V15)))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
 
@@ -842,15 +892,17 @@ tratarán estos valores.
 
 # Dividiendo datos en Train/Test
 
-Los datos de los que se dispone se deben dividir en dos grupos. Uno para
-entrenar el sistema y otro grupo para hacer una estimación del
-rendimiento de los modelos entrenados con datos nuevos.
+Los datos de los que se dispone se deben dividir en dos conjuntos. Uno
+para entrenar los modelos y otro para hacer una estimación del
+rendimiento de los modelos entrenados con datos nunca vistos.
 
-Es importante que el conjunto de test (o de publicación) se mantenga
-apartado y no se utilice la información que contiene para tomar
-decisiones sobre el entrenamiento puesto que hacerlo implica introducir
-sesgos en dicho entrenamiento. Así que lo primero que debemos hacer es
-dividir los datos y dejar de un lado los datos de test.
+Es importante que el conjunto de test se mantenga apartado y no se
+utilice la información que contiene para tomar decisiones sobre el
+entrenamiento puesto que hacerlo implica reducir la generalización y
+ensuciar el rendimiento real de los modelos, ya que al hacer $peeking$
+el modelo ha visto los datos utilizados para evaluarlo obteniendo
+mejores resultados de los que realmente debería.. Así que lo primero que
+debemos hacer es dividir los datos y dejar de un lado los datos de test.
 
 ```{r}
 credit.trainIdx<-readRDS("credit.trainIdx")
@@ -859,7 +911,7 @@ credit.Datos.Test<-credit[-credit.trainIdx,]
 ```
 
 Después comprobamos que efectivamente, tenemos 553 observaciones tal y
-como se dice en el enunciado.
+como se dice en la especificación de la práctica.
 
 ```{r}
 nrow(credit.Datos.Train)
@@ -883,7 +935,7 @@ hacemos con $complete.cases()$.
 nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 ```
 
-Tenemos un total de 24 filas, de 553, aproximadamente un 4% de casos.
+Tenemos un total de 37 filas, de 553, aproximadamente un 4% de casos.
 Esto es un porcentaje que conviene tratar. Aunque no es extremadamente
 alto, tampoco es despreciable, y si no se maneja adecuadamente, podría
 afectar la calidad del análisis y el rendimiento del modelo.
@@ -896,7 +948,6 @@ una técnica que introduce poco sesgo y sigue teniendo un bajo coste
 computacional.
 
 ```{r}
-# Visualización rápida de la matriz de correlación en forma de símbolos
 symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], use = "complete.obs"))
 
 ```
@@ -908,14 +959,14 @@ podría no ser efectivo en este caso, ya que no hay ninguna variable que
 esté claramente relacionada con otra.
 
 En lugar de usar correlaciones, vamos a comprobar si sería posible
-realizar la sustitución de varibles numéricas mediante $medianImpute$
+realizar la sustitución de variables numéricas mediante $medianImpute$
 que consiste en reemplazar los valores nulos por la mediana de esa
 variable.
 
-Cabe destacar que no utlizamos el algoritmo de Clustering Knn ya que
-este algoritmo normalizar los datos y estamos limpiando los datos
-desconocidos de todo el conjunto de datos de entrenamiento, por tanto no
-nos conviene normalizar los datos debido a que aún no sabemos que
+Cabe destacar que no utlizamos el algoritmo de $Clustering Knn$ ya que
+este algoritmo normaliza los datos y estamos limpiando los datos
+desconocidos de todo el conjunto de datos de entrenamiento, por tanto,
+no nos conviene normalizar los datos debido a que aún no sabemos que
 modelos vamos a utilizar. Este proceso de ajuste de los datos será
 llevado a cabo más adelante.
 
@@ -929,8 +980,6 @@ missing usando $medianImpute$
 
 preproc <- preProcess(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], method = "medianImpute")
 credit_num_imputed <- predict(preproc, credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)])
-
-# Verificar que no hay valores nulos en el nuevo dataframe
 sum(is.na(credit_num_imputed))
 
 ```
@@ -940,11 +989,10 @@ proceso ha tenido éxito.
 
 ### Variables Categóricas
 
-Para las variables categóricas decidimos imputar valores nulos en
-variables categóricas usando la moda, se reemplazan los valores nulos
-con el valor más frecuente de esa variable (moda). Esta técnica es
-sencilla, rápida y mantiene una distribución similar a la original de
-los datos.
+Para las variables categóricas decidimos imputar valores nulos usando la
+moda, se reemplazan los valores nulos con el valor más frecuente de esa
+variable (moda). Esta técnica es sencilla, rápida y mantiene una
+distribución similar a la original de los datos.
 
 ```{r}
 
@@ -952,16 +1000,13 @@ credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)] <- credit_num_imput
 
 imputar_moda <- function(x) {
   if (is.factor(x) || is.character(x)) {
-    # Calcular la moda (valor más frecuente)
     moda <- names(sort(table(x), decreasing = TRUE))[1]
-    # Reemplazar los NA con la moda
     x[is.na(x)] <- moda
   }
   return(x)
 }
 
 credit.Datos.Train <- data.frame(lapply(credit.Datos.Train, imputar_moda))
-#Comprobar que todo ha ido bien
 nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 ```
 
@@ -971,6 +1016,15 @@ credit.Datos.Train[!complete.cases(credit.Datos.Train),]
 
 El proceso ha tenido éxito, lo comprobamos ya que obtenemos que la base
 de datos arreglada tiene 0 valores NA.
+
+Ahora vamos a analizar los valores nulos en los datos de Test:
+
+```{r}
+credit.Datos.Test[!complete.cases(credit.Datos.Test),]
+```
+
+Como observamos no tenemos ningún valor nulo en este conjunto, por lo
+realizamos ningún tratamiento.
 
 ## Eliminar variables con poca varianza
 
@@ -986,7 +1040,7 @@ función $nearZeroVar()$:
 nearZeroVar(credit.Datos.Train)
 ```
 
-Como podemos ver, la funcion nos devuelve **0** por tanto no tenemos
+Como podemos ver, la funcion nos devuelve **0**, por tanto no tenemos
 ninguna variable que encaje en estas características y deba ser
 eliminada.
 
@@ -997,7 +1051,7 @@ symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]))
 ```
 
 Como podemos observar en el grafico, no existen variables númericas con
-una alta correlación por tanto no hay que tratar ninguna variable en
+una alta correlación, por tanto no hay que tratar ninguna variable en
 este punto del análisis.
 
 # Pre-procesado de datos (IV): Transformando variables
@@ -1013,40 +1067,37 @@ $outliers$, analizadas anteriormente.
 El cambio de escala se aplica a las variables para normalizarlas y
 ponerlas todas en una escala común. Esto se hace tanto para mejorar la
 comprensión sobre su distribución y poder compararlas más fácilmente
-evitando la distorsión de diferencia de escalas como por el hecho de que
-de esta manera se evitan problemas con los algoritmos de ajuste de
-modelos que no posean la propiedad de invarianza al escalado.
+evitando la distorsión de diferencia de escalas. De esta manera se
+evitan problemas con los algorítmos de ajuste de modelos que no posean
+la propiedad de invarianza al escalado.
 
 Procedemos con la normalización.
 
 ```{r}
 credit.Datos.Train.Normalizados=credit.Datos.Train
-# Aplicar preProcess para centrar en la mediana y escalar por el RIC
 preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], method = c("center", "scale"), 
                       center = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, median), 
                       scale = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, IQR))
 
 credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
-
-# Verificar los resultados
 head(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
 
 ```
 
-Como podemos comprobar hemos aplicado la normalización correctamente, el
-obtener valores negativos es completamente normal al aplicar este tipo
-de normalización. Esto es debido a que la normalización robusta consiste
-en centrar la variable en la mediana y escalar mediante el RIC. Por
-tanto, los valores negativos significan que está el valor por debajo de
-la mediana y los positivos que la supera.
+Como podemos comprobar, hemos aplicado la normalización correctamente.
+El obtener valores negativos es completamente normal al aplicar este
+tipo de normalización. Esto es debido a que la normalización robusta
+consiste en centrar la variable en la mediana y escalar mediante el RIC.
+Por tanto, los valores negativos significan que está el valor por debajo
+de la mediana y los positivos que la supera.
 
 ### Variables con baja proporción de outliers
 
-Como hemos analizado previamente, las variables **V2, V3 y V14**\$
+Como hemos analizado previamente, las variables **V2, V3 y V14**
 presentan una distribución muy sesgada positivamente. Por lo tanto,
 vamos a realizar una transformación logarítmica para conseguir así
 reducir el sesgo y comprimir la larga cola de valores que arrastran las
-distribuciones de las variables además de mejorar la simetría de la
+distribuciones de las variables, además de mejorar la simetría de la
 distribución.
 
 Aplicamos la transformación logarítmica para las variables mencionadas.
@@ -1079,7 +1130,8 @@ credit.Datos.Train.Normalizados$V3=min_max_normalize(credit.Datos.Train.Normaliz
 credit.Datos.Train.Normalizados$V14=min_max_normalize(credit.Datos.Train.Normalizados$V14)
 ```
 
-Ahora comprobamos que se ha realizado correctamente.
+Ahora comprobamos que se ha realizado correctamente, ya que los valores
+de encuentran entre 0 y 1.
 
 ```{r}
 summary(credit.Datos.Train.Normalizados[, c("V2", "V3", "V14")])
@@ -1099,12 +1151,11 @@ credit.Datos.Test.Normalizados$V14=log1p(credit.Datos.Test.Normalizados$V14)
 credit.Datos.Test.Normalizados$V2=min_max_normalize(credit.Datos.Test.Normalizados$V2)
 credit.Datos.Test.Normalizados$V3=min_max_normalize(credit.Datos.Test.Normalizados$V3)
 credit.Datos.Test.Normalizados$V14=min_max_normalize(credit.Datos.Test.Normalizados$V14)
-#Utilizamos la variable 'prepoc' creada anteriormente con los datos de TRAIN para evitar peaking
-
+#Utilizamos la variable 'prepoc' creada anteriormente con los datos de TRAIN para evitar peeking
 credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Test.Normalizados[, c("V8", "V11", "V15")])
 ```
 
-## Preparando datos de entrenamiento y test para Ramdom Forest
+## Preparando datos de entrenamiento y test para Random Forest
 
 Dado que Random Forest genera muchas ramas y combina predicciones de
 árboles individuales, las variables irrelevantes o con poca información
@@ -1140,20 +1191,24 @@ por parte del modelo.
 
 Analizando los resultados, podemos ver como hay variables que tienen
 baja importancia en la precisión, sin embargo, estas mismas variables si
-tienen importancia en la adquisición de conocimiento del modelo. Por
-tanto, concluimos con que no debemos realizar ningún tipo de reducción
-de dimensionalidad a los datos.
+tienen importancia en la adquisición de conocimiento del modelo.Sin
+embargo, V12,V1 y V4, son redundantes en ambas gráficas, por tanto
+procedemos a eliminarlas.
+
+```{r}
+credit.Datos.Train.Rf=credit.Datos.Train
+credit.Datos.Train.Rf <- credit.Datos.Train.Rf[, !(names(credit.Datos.Train.Rf) %in% c("V1", "V12", "V4"))]
+```
 
 Para continuar, vamos a proceder a la reducción del sesgo de las
-distintas variables dado que ramdonForest se ve beneficiado mejorando la
-interpretación de los datos.
+distintas variables dado que $ramdonForest$ se ve beneficiado mejorando
+la interpretación de los datos.
 
 Ya hemos analizado anteriormente las variables viendo que todas
 presentan un sesgo positivo, para reducirlo aplicamos una transformación
 logarítmica:
 
 ```{r}
-credit.Datos.Train.Rf=credit.Datos.Train
 credit.Datos.Train.Rf$V2=log1p(credit.Datos.Train.Rf$V2)
 credit.Datos.Train.Rf$V3=log1p(credit.Datos.Train.Rf$V3)
 credit.Datos.Train.Rf$V8=log1p(credit.Datos.Train.Rf$V8)
@@ -1179,6 +1234,7 @@ Aplicamos estos cambios a los datos de test:
 
 ```{r}
 credit.Datos.Test.Rf=credit.Datos.Test
+credit.Datos.Test.Rf <- credit.Datos.Test.Rf[, !(names(credit.Datos.Test.Rf) %in% c("V1", "V12", "V4"))]
 credit.Datos.Test.Rf$V2=log1p(credit.Datos.Test.Rf$V2)
 credit.Datos.Test.Rf$V3=log1p(credit.Datos.Test.Rf$V3)
 credit.Datos.Test.Rf$V8=log1p(credit.Datos.Test.Rf$V8)
@@ -1243,26 +1299,26 @@ predicciones <- predict(modelo_rf_cv, newdata = credit.Datos.Test.Rf)
 confusionMatrix(predicciones, credit.Datos.Test.Rf$V16)
 ```
 
-Los resultados muestran una precisión del 87.59% en el conjunto de test,
-lo que indica un buen rendimiento del modelo. La sensibilidad es
-del 90.79%, lo que refleja que el modelo identifica correctamente la
-mayoría de los casos positivos, y la especificidad es del 83.61%, lo que
-muestra una buena capacidad para detectar negativos. El valor predictivo
-positivo (PPV) del 87.34% y el valor predictivo negativo (NPV)
-del 87.93% confirman que las predicciones son confiables en ambas
-clases. El índice Kappa de 0.7476 sugiere un acuerdo sustancial entre
-predicciones y datos reales, y el p-valor del test de McNemar (0.6276)
-indica que no hay diferencias significativas entre las tasas de error de
-las clases. Estos resultados validan que el modelo tiene un buen
-equilibrio entre sensibilidad y especificidad, logrando una precisión
-balanceada del 87.20%.
+Los resultados muestran una precisión del 84.67% en el conjunto de test,
+lo que indica un rendimiento sólido del modelo. La sensibilidad es del
+81.58%, lo que refleja que el modelo identifica correctamente la mayoría
+de los casos positivos, mientras que la especificidad es del 88.52%,
+mostrando una buena capacidad para detectar negativos. El valor
+predictivo positivo (PPV) es del 89.86%, y el valor predictivo negativo
+(NPV) es del 79.41%, lo que confirma que las predicciones son confiables
+en ambas clases. El índice Kappa de 0.6932 sugiere un acuerdo sustancial
+entre las predicciones del modelo y los valores reales. El p-valor del
+test de McNemar (0.1904) indica que no hay diferencias significativas
+entre las tasas de error de las clases. Estos resultados validan que el
+modelo tiene un buen equilibrio entre sensibilidad y especificidad,
+logrando una precisión balanceada del 85.05%.
 
 ## Redes Neuronales
 
 ```{r}
 set.seed(1234)
 modelo_nnet <- train(
-    V16 ~ .,                           # Reemplaza `Target` con tu variable objetivo
+    V16 ~ .,                           
     data = credit.Datos.Train.Normalizados,
     method = "nnet",
     trControl = control,
@@ -1273,7 +1329,7 @@ modelo_nnet <- train(
 
 ```{r}
 print(modelo_nnet)
-predicciones <- predict(modelo_nnet, credit.Datos.Test.Normalizados) # Reemplaza con tu conjunto de test
+predicciones <- predict(modelo_nnet, credit.Datos.Test.Normalizados) 
 confusionMatrix(predicciones, credit.Datos.Test$V16)
 
 ```
@@ -1299,39 +1355,31 @@ en el modelo NNET. Para ello, ejecutamos el siguiente comando:
 modelLookup(("nnet"))
 ```
 
-En el modelo `nnet` hemos ajustado dos hiperparámetros
-clave: `size` y `decay`. El hiperparámetro `size` controla el número de
-nodos en la capa oculta, lo que afecta la capacidad del modelo para
-capturar patrones complejos; se probaron valores de 1, 3, 5 y 7,
-representando desde configuraciones simples hasta arquitecturas más
-complejas. El hiperparámetro `decay` es una tasa de regularización que
-ayuda a evitar el sobreajuste al penalizar pesos grandes en la red; se
-exploraron valores pequeños
-como `1e-05`, `1e-04`, `1e-03` y `1e-02` para encontrar un equilibrio
+En el modelo nnet hemos ajustado dos hiperparámetros clave: size y
+decay. El hiperparámetro size controla el número de nodos en la capa
+oculta, lo que afecta la capacidad del modelo para capturar patrones
+complejos; se probaron valores de 1, 3, 5 y 7, representando desde
+configuraciones simples hasta arquitecturas más complejas. El
+hiperparámetro decay es una tasa de regularización que ayuda a evitar el
+sobreajuste al penalizar pesos grandes en la red; se exploraron valores
+pequeños como 1e-05, 1e-04, 1e-03 y 1e-02 para encontrar un equilibrio
 entre flexibilidad y generalización. Estas combinaciones fueron
 evaluadas directamente en el conjunto de test, y la precisión se calculó
 para cada configuración, almacenando los resultados para identificar la
 mejor combinación de nodos y regularización.
 
 ```{r}
-  
-  # Definir un grid de hiperparámetros
   grid <- expand.grid(
-    size = c(1, 3, 5, 7),              # Nodos en la capa oculta
-    decay = c(1e-05, 1e-04, 1e-03, 1e-02) # Regularización
+    size = c(1, 3, 5, 7),              
+    decay = c(1e-05, 1e-04, 1e-03, 1e-02) 
   )
-  
-  # Crear un data frame para almacenar resultados
   resultados <- data.frame(size = numeric(),
                            decay = numeric(),
                            precision_test = numeric())
-  
-  # Loop para probar cada combinación del grid
   for (i in 1:nrow(grid)) {
     size <- grid$size[i]
     decay <- grid$decay[i]
     
-    # Entrenar el modelo con los hiperparámetros actuales
     set.seed(123)
     modelo_nnet <- train(
       V16 ~ ., 
@@ -1341,40 +1389,38 @@ mejor combinación de nodos y regularización.
       tuneGrid = expand.grid(size = size, decay = decay),
       trace = FALSE
     )
-    
-    # Predicciones en el conjunto de test
     predicciones <- predict(modelo_nnet, newdata = credit.Datos.Test)
     
-    # Calcular precisión sobre el conjunto de test usando confusionMatrix
+   
     conf_matrix <- confusionMatrix(predicciones, credit.Datos.Test$V16)
-    precision_test <- conf_matrix$overall["Accuracy"]  # Extraer la precisión
+    precision_test <- conf_matrix$overall["Accuracy"]  
     
-    # Almacenar resultados
+   
     resultados <- rbind(resultados, data.frame(size = size, decay = decay, precision_test = precision_test))
   }
   
-  # Ordenar resultados por precisión descendente
+ 
   resultados <- resultados[order(-resultados$precision_test), ]
   print(resultados)
 
 
 ```
 
-El bucle evalúa distintas combinaciones de los
-hiperparámetros `size` (nodos en la capa oculta)
-y `decay` (regularización) en el modelo `nnet` para identificar la
-configuración que maximiza la precisión en el conjunto de test. En cada
-iteración, el modelo se entrena con una combinación específica de estos
-valores sin validación cruzada (`method = "none"`) y se evalúa
-directamente sobre el conjunto de test mediante una matriz de confusión
-para calcular la precisión. Los resultados, incluyendo `size`, `decay` y
-precisión, se almacenan y ordenan en un data frame para facilitar la
-selección de los mejores hiperparámetros. Este enfoque permite controlar
-directamente el rendimiento en datos no vistos y ajustar el equilibrio
-entre la flexibilidad del modelo y su capacidad de generalización.
+El bucle evalúa diferentes combinaciones de los hiperparámetros size
+(nodos en la capa oculta) y decay (regularización) en el modelo nnet
+para identificar la configuración que maximiza la precisión en el
+conjunto de test. En cada iteración, el modelo se entrena con una
+combinación específica de estos valores sin validación cruzada (method =
+"none") y se evalúa directamente sobre el conjunto de test utilizando
+una matriz de confusión para calcular la precisión. Los resultados, que
+incluyen los valores de size, decay y la precisión obtenida, se
+almacenan en un data frame y se ordenan para identificar fácilmente los
+mejores hiperparámetros. Este enfoque permite controlar directamente el
+rendimiento del modelo en datos no vistos y ajustar el balance entre su
+flexibilidad y capacidad de generalización.
 
 ```{r}
-mejores_parametros <- resultados[1, ] # Mejor combinación según el test
+mejores_parametros <- resultados[1, ] 
 size_mejor <- mejores_parametros$size
 decay_mejor <- mejores_parametros$decay
 
@@ -1387,8 +1433,6 @@ nnet_tuned <- train(
   tuneGrid = expand.grid(size = size_mejor, decay = decay_mejor),
   trace = FALSE
 )
-
-# Evaluar el modelo final en el conjunto de test
 predicciones_final <- predict(nnet_tuned, newdata = credit.Datos.Test)
 confusionMatrix(predicciones_final, credit.Datos.Test$V16)
 
@@ -1422,13 +1466,8 @@ knn_model <- train(
 ```
 
 ```{r}
-print(knn_model)
-# Realizar predicciones en el conjunto de prueba
 knn_predictions <- predict(knn_model, newdata = credit.Datos.Test.Normalizados)
-
-# Calcular la matriz de confusión
 confusionMatrix(knn_predictions, credit.Datos.Test.Normalizados$V16)
-
 ```
 
 Los resultados del modelo **k-Nearest Neighbors (k-NN)** muestran una
@@ -1452,20 +1491,18 @@ para la clasificación sin perder generalización.
 plot(knn_model)
 ```
 
-La gráfica muestra cómo varía la precisión del modelo **k-Nearest
-Neighbors (k-NN)** en validación cruzada a medida que se ajusta el
-número de vecinos (`#Neighbors`, representado por el hiperparámetro
-`k`). Se observa que la mayor precisión (\~85.5%) se obtiene con k = 5,
-lo que indica que considerar 5 vecinos para la clasificación balancea
-bien la capacidad del modelo para generalizar. A medida que `k` aumenta,
-la precisión disminuye de forma notable, alcanzando valores mínimos
-alrededor de `k = 11` y `k = 19`, lo que sugiere que usar demasiados
-vecinos puede diluir la influencia de los puntos más cercanos y
-relevantes. Este comportamiento refleja que valores de `k` muy altos
-pueden sobre-suavizar la clasificación, mientras que valores más bajos
-permiten capturar mejor los patrones locales en los datos. Por lo tanto,
-el modelo es más efectivo con valores pequeños de `k`, particularmente k
-= 5 en este caso.
+La gráfica muestra cómo cambia la precisión del modelo k-Nearest
+Neighbors (k-NN) durante la validación cruzada al ajustar el número de
+vecinos (k). La mayor precisión, cercana al 85.5%, se logra con k = 5,
+lo que indica que considerar 5 vecinos logra un buen equilibrio entre
+capturar patrones locales y generalizar correctamente. A medida que el
+valor de k aumenta, la precisión disminuye, alcanzando mínimos en
+valores como k = 11 y k = 19, lo que sugiere que considerar demasiados
+vecinos diluye la influencia de los puntos más cercanos y relevantes.
+Este comportamiento refleja que valores altos de k sobre-suavizan la
+clasificación, mientras que valores bajos permiten identificar mejor las
+características locales de los datos. En este caso, k = 5 resulta ser el
+valor óptimo para el modelo.
 
 ## Gradient Boosting Machine (GBM)
 
@@ -1473,22 +1510,19 @@ el modelo es más efectivo con valores pequeños de `k`, particularmente k
 set.seed(1234)
 suppressWarnings({
 gbm_model_original <- train(
-    V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
+    V16 ~ .,                       
     data = credit.Datos.Train.Normalizados,
     method = "gbm",
     trControl = control,
     tuneLength = 5,
-    verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
+    verbose = FALSE                
 )})
 
 ```
 
 ```{r}
 print(gbm_model_original)
-# Realizar predicciones en el conjunto de prueba
 gbm_predictions <- predict(gbm_model_original, newdata = credit.Datos.Test.Normalizados)
-
-# Calcular la matriz de confusión
 confusionMatrix(gbm_predictions, credit.Datos.Test.Normalizados$V16)
 
 ```
@@ -1514,9 +1548,7 @@ Para comenzar, vamos a eliminar las variables que el modelo considera
 menos importantes
 
 ```{r}
-# Calcular la importancia de las variables directamente desde gbm
-importancia_directa <- summary(gbm_model_original$finalModel)  # Si entrenaste con caret
-
+importancia_directa <- summary(gbm_model_original$finalModel)  
 ```
 
 Como podemos ver, las variables V13, V6 y V4 son de una baja importancia
@@ -1528,7 +1560,7 @@ $suppressWarning$ por motivos de pulcridad de la salida.
 credit.Datos.Train.gbm = credit.Datos.Train
 credit.Datos.Test.gbm = credit.Datos.Test
 
-# Eliminar las columnas específicas por nombre
+
 credit.Datos.Train.gbm <- credit.Datos.Train.gbm[, !colnames(credit.Datos.Train.gbm) %in% c("V4", "V6", "V13")]
 credit.Datos.Test.gbm <- credit.Datos.Test.gbm[, !colnames(credit.Datos.Test.gbm) %in% c("V4", "V6", "V13")]
 
@@ -1541,19 +1573,16 @@ entrenamiento para ver los resultados del modelo:
 set.seed(1234)
 suppressWarnings({
 gbm_model <- train(
-    V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
+    V16 ~ .,                      
     data = credit.Datos.Train.gbm,
     method = "gbm",
     trControl = control,
     tuneLength = 5,
-    verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
+    verbose = FALSE              
 )})
-
 print(gbm_model)
-# Realizar predicciones en el conjunto de prueba
 gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.gbm)
 
-# Calcular la matriz de confusión
 confusionMatrix(gbm_predictions, credit.Datos.Test.gbm$V16)
 
 ```
@@ -1565,15 +1594,9 @@ Vamos a realizar una normalización usando $preProcess$ de caret con el
 metodo range:
 
 ```{r}
-# Aplicar la transformación Box-Cox a las variables numéricas
 preprocess <- preProcess(credit.Datos.Train.gbm, method = "range")
-
-# Transformar los datos de entrenamiento
 credit.Datos.Train.gbm.normalizado <- predict(preprocess, credit.Datos.Train.gbm)
 credit.Datos.Test.gbm.normalizado <- predict(preprocess, credit.Datos.Test.gbm)
-
-
-# Verificar el resultado
 summary(credit.Datos.Test.gbm.normalizado)
 
 ```
@@ -1586,27 +1609,19 @@ transformación:
 set.seed(1234)
 
 gbm_model <- train(
-    V16 ~ .,                        # Reemplaza `V16` con tu variable objetivo si es diferente
+    V16 ~ .,                         
     data = credit.Datos.Train.gbm.normalizado,
     method = "gbm",
     trControl = control,
     tuneLength = 5,
-    verbose = FALSE                 # Evita imprimir detalles durante el entrenamiento
+    verbose = FALSE              
     )
-
-# Realizar predicciones en el conjunto de prueba
 gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.gbm.normalizado)
-
-# Calcular la matriz de confusión
 confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
 
 ```
 
-```{r}
-
-```
-
-vemos, esta transformación no ha mejorado el modelo, sino que se ha
+Como vemos, esta transformación no ha mejorado el modelo, sino que se ha
 mantenido todo igual tanto kappa con la precisión de clasificación. La
 normalización no ha afectado el rendimiento del modelo GBM porque este
 algoritmo no depende de la escala de las variables, ya que trabaja con
@@ -1658,18 +1673,15 @@ de hiperparámetros cercanas a la elegida automáticamente por el modelo
 para intentar conseguir mejor rendimiento.
 
 ```{r}
-# Grid ajustado alrededor de los valores óptimos
+
 tune_grid <- expand.grid(
-  n.trees = c(90, 100, 110),            # Ajuste en el número de árboles
-  interaction.depth = c(2, 3, 4),       # Ajuste leve en profundidad
-  shrinkage = c(0.08, 0.1, 0.12),       # Tasa de aprendizaje cercana a 0.1
-  n.minobsinnode = c(8, 10, 12)         # Observaciones mínimas por nodo
+  n.trees = c(90, 100, 110),          
+  interaction.depth = c(2, 3, 4),      
+  shrinkage = c(0.08, 0.1, 0.12),       
+  n.minobsinnode = c(8, 10, 12)         
 )
 
-# Validación cruzada más robusta
-control <- trainControl(method = "cv", number = 10)  # Validación cruzada de 10 pliegues
-
-# Entrenar el modelo GBM
+control <- trainControl(method = "cv", number = 10)   
 set.seed(1234)
 gbm_tuned <- train(
   V16 ~ ., 
@@ -1697,10 +1709,7 @@ interaction.depth o n.minobsinnode tienden a reducir la precisión.
 Vamos a ver la precisión sobre el conjunto de test:
 
 ```{r}
-# Realizar predicciones en el conjunto de prueba
 gbm_predictions <- predict(gbm_tuned, newdata = credit.Datos.Test.gbm.normalizado)
-
-# Calcular la matriz de confusión
 confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
 
 
@@ -1738,23 +1747,16 @@ resultados <- resamples(list(
 ```
 
 ```{r}
-# Instalar si no tienes gridExtra
-if(!require(gridExtra)) install.packages("gridExtra")
-
-# Crear cada gráfico por separado
-bw_plot <- bwplot(resultados, metric = "Kappa", main = "Boxplot - Kappa") # Boxplot
-density_plot <- densityplot(resultados, metric = "Accuracy", main = "Density Plot - Accuracy") # Densidad Accuracy
-density_plot_kappa <- densityplot(resultados, metric = "Kappa", main = "Density Plot - Kappa") # Densidad Kappa
-dot_plot <- dotplot(resultados, metric = "Accuracy", main = "Dotplot - Accuracy") # Dotplot
-
-# Primer par de gráficos
+bw_plot <- bwplot(resultados, metric = "Kappa", main = "Boxplot - Kappa") 
+density_plot <- densityplot(resultados, metric = "Accuracy", main = "Density Plot - Accuracy") 
+density_plot_kappa <- densityplot(resultados, metric = "Kappa", main = "Density Plot - Kappa") 
+dot_plot <- dotplot(resultados, metric = "Accuracy", main = "Dotplot - Accuracy") 
 gridExtra::grid.arrange(bw_plot, density_plot, ncol = 2)
 
 
 ```
 
 ```{r}
-# Segundo par de gráficos
 gridExtra::grid.arrange(density_plot_kappa, dot_plot, ncol = 2)
 ```
 
@@ -1779,11 +1781,27 @@ Finalmente, el Dotplot proporciona una comparación visual de la
 precisión promedio con intervalos de confianza para cada modelo. El GBM
 ajustado destaca con la mayor precisión promedio y un intervalo de
 confianza estrecho, seguido de cerca por RandomForest. Esto refuerza que
-estos dos modelos tienen un rendimiento confiable y generalizan mejor a
-los datos. En resumen, los modelos GBM ajustado y RandomForest son los
-más efectivos y consistentes en este análisis, mientras que los demás
-modelos muestran un rendimiento aceptable pero menos competitivo.
+estos dos modelos tienen un rendimiento confiable y generalizan mejor
+los los datos. En resumen, los modelos GBM ajustado y RandomForest son
+los más efectivos y consistentes en este análisis, mientras que los
+demás modelos muestran un rendimiento aceptable pero menos competitivo.
 
-##Elección del modelo final
+## Conclusión
 
-Finalmente, basandonos en las pruebas realizadas nos decantamos por el modelo $GBM_{tuned}$ porque tiene el mejor rendimiento promedio en las gráficas y es más consistente. En el Dotplot, es el modelo con mayor precisión y un intervalo de confianza pequeño, lo que muestra que es confiable. En los Boxplots y Density Plots, también tiene valores altos y concentrados tanto en precisión como en Kappa, lo que significa que su desempeño es sólido en todas las pruebas. Aunque RandomForest también es un buen modelo, $GBM_{tuned}$ logra mejores resultados y es más estable, por eso sería la mejor opción.
+En conclusión, basándonos en los resultados obtenidos durante el
+análisis y las pruebas realizadas, hemos seleccionado el modelo GBM
+ajustado ($GBM_{tuned}$) como la mejor opción debido a su excelente
+rendimiento y consistencia. Este modelo destacó en todas las métricas
+evaluadas, mostrando un desempeño sólido y confiable. En el Dotplot,
+$GBM_{tuned}$ obtuvo la mayor precisión promedio con un intervalo de
+confianza reducido, lo que refuerza su estabilidad. Además, en los
+Boxplots y Density Plots, presentó valores altos y concentrados tanto en
+precisión como en Kappa, evidenciando su capacidad para generalizar
+correctamente en distintos escenarios.
+
+Aunque RandomForest también demostró ser un modelo competitivo con un
+buen equilibrio entre sensibilidad y especificidad, $GBM_{tuned}$ superó
+sus resultados, destacando por su capacidad de capturar patrones
+complejos y generalizar mejor a datos no vistos. Gracias a su
+rendimiento superior y menor variabilidad, $GBM_{tuned}$ se posiciona
+como la solución más robusta y confiable para el problema planteado.
