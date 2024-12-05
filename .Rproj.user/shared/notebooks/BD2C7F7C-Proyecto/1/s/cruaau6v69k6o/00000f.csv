@@ -1,0 +1,1 @@
+"0","credit = read.table(""crx.data"", sep = "","",na.strings = ""?"")"

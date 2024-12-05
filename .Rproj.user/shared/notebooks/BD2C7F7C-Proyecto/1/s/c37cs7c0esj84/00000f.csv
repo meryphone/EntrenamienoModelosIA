@@ -1,0 +1,7 @@
+"0","ggplot(data = credit, aes(sample = V8)) +"
+"0","  ggtitle(""QQ plot para variable V8"") +"
+"0","  stat_qq() + "
+"0","  stat_qq_line() +"
+"0","  xlab(""Distribución teórica"") +"
+"0","  ylab(""Distribución muestral"")"
+"0",""

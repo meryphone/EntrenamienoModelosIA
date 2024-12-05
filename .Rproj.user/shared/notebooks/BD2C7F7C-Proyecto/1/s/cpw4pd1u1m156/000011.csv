@@ -1,0 +1,4 @@
+"0","ggplot(credit, aes(x = V8)) +"
+"0","  geom_histogram(bins = 30, fill = ""orange"", color = ""black"", alpha = 0.7) +"
+"0","  labs(title = ""Histograma de V8 original"", x = ""V8 (original)"", y = ""Frecuencia"")"
+"0",""

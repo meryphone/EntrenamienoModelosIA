@@ -1,0 +1,2 @@
+"0","credit.Datos.Train.Rf=credit.Datos.Train"
+"0","credit.Datos.Train.Rf <- credit.Datos.Train.Rf[, !(names(credit.Datos.Train.Rf) %in% c(""V1"", ""V12"", ""V4""))]"

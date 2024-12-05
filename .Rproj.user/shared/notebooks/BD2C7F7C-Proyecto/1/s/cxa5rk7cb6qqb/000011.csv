@@ -1,0 +1,6 @@
+"0","predictors <- credit.Datos.Train[, -which(names(credit.Datos.Train) == ""V16"")]"
+"0","target <- credit.Datos.Train$V16"
+"0","rf_model <- randomForest(x = predictors, y = target, importance = TRUE)"
+"0","importance_rf <- importance(rf_model)"
+"0","varImpPlot(rf_model)"
+"0",""

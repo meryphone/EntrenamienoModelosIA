@@ -1,0 +1,48 @@
+"0","suppressWarnings({ # Para no manchar la salida."
+"0","library(ggplot2)"
+"0","library(dplyr)"
+"0","library(GGally)"
+"0","library(caret)"
+"0","library(RANN)"
+"0","library(e1071)"
+"0","library(randomForest)"
+"0","library(nnet)"
+"0","})"
+"2","
+Adjuntando el paquete: ‘dplyr’
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+"
+"2","Registered S3 method overwritten by 'GGally':
+  method from   
+  +.gg   ggplot2
+"
+"2","Cargando paquete requerido: lattice
+"
+"2","randomForest 4.7-1.2
+"
+"2","Type rfNews() to see new features/changes/bug fixes.
+"
+"2","
+Adjuntando el paquete: ‘randomForest’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    combine
+
+"
+"2","The following object is masked from ‘package:ggplot2’:
+
+    margin
+
+"

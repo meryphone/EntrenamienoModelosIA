@@ -1,0 +1,4 @@
+"0","ggplot(credit, aes(sample = V3)) +"
+"0","  stat_qq() +"
+"0","  stat_qq_line(color = ""blue"", linetype = ""dashed"") +"
+"0","  labs(title = ""Diagrama Q-Q de V3"", x = ""Cuantiles Teóricos"", y = ""Cuantiles Muestrales"")"

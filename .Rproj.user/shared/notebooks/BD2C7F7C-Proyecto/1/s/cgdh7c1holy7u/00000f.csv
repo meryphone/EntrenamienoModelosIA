@@ -1,0 +1,7 @@
+"0","credit.Datos.Train.gbm = credit.Datos.Train"
+"0","credit.Datos.Test.gbm = credit.Datos.Test"
+"0",""
+"0","# Eliminar las columnas específicas por nombre"
+"0","credit.Datos.Train.gbm <- credit.Datos.Train.gbm[, !colnames(credit.Datos.Train.gbm) %in% c(""V4"", ""V6"", ""V13"")]"
+"0","credit.Datos.Test.gbm <- credit.Datos.Test.gbm[, !colnames(credit.Datos.Test.gbm) %in% c(""V4"", ""V6"", ""V13"")]"
+"0",""
