@@ -4,7 +4,7 @@ author:
   - "María Capilla Zapata"
   - "Gloria Sánchez Alonso"
   - "Samuel Avilés Conesa"
-date: "`r Sys.Date()`"
+date: "2024-12-05"
 output: 
   html_document: 
     toc: true
@@ -21,9 +21,7 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 # Introdución
 
@@ -54,7 +52,8 @@ clasificación de futuros datos.
 
 ## Carga de librerías necesarias.
 
-```{r}
+
+``` r
 suppressWarnings({ # Para no manchar la salida.
 library(ggplot2)
 library(dplyr)
@@ -67,6 +66,58 @@ library(nnet)
 })
 ```
 
+```
+## 
+## Adjuntando el paquete: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```
+## Registered S3 method overwritten by 'GGally':
+##   method from   
+##   +.gg   ggplot2
+```
+
+```
+## Cargando paquete requerido: lattice
+```
+
+```
+## randomForest 4.7-1.2
+```
+
+```
+## Type rfNews() to see new features/changes/bug fixes.
+```
+
+```
+## 
+## Adjuntando el paquete: 'randomForest'
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     combine
+```
+
+```
+## The following object is masked from 'package:ggplot2':
+## 
+##     margin
+```
+
 ## Carga de la base de datos
 
 Para comenzar, cargamos la base de datos, guardando en distintas
@@ -74,7 +125,8 @@ variables los datos que utilizaremos para el entrenamiento y para probar
 el modelo. Añadimos la opción "na.strings=?" para sustituir los valores
 desconocidos por NA y poder ser procesados posteriormente.
 
-```{r}
+
+``` r
 credit = read.table("crx.data", sep = ",",na.strings = "?")
 ```
 
@@ -82,8 +134,19 @@ credit = read.table("crx.data", sep = ",",na.strings = "?")
 
 Primero tenemos que analizar que variables contiene la base de datos:
 
-```{r}
+
+``` r
 head(credit)
+```
+
+```
+##   V1    V2    V3 V4 V5 V6 V7   V8 V9 V10 V11 V12 V13 V14 V15 V16
+## 1  b 30.83 0.000  u  g  w  v 1.25  t   t   1   f   g 202   0   +
+## 2  a 58.67 4.460  u  g  q  h 3.04  t   t   6   f   g  43 560   +
+## 3  a 24.50 0.500  u  g  q  h 1.50  t   f   0   f   g 280 824   +
+## 4  b 27.83 1.540  u  g  w  v 3.75  t   t   5   t   g 100   3   +
+## 5  b 20.17 5.625  u  g  w  v 1.71  t   f   0   f   s 120   0   +
+## 6  b 32.08 4.000  u  g  m  v 2.50  t   f   0   t   g 360   0   +
 ```
 
 Observamos al importar la base de datos el tipo de datos de las
@@ -92,7 +155,8 @@ variables es incorrecto.
 Procedemos a transformar el tipo de dato de las variables tal y como se
 especifica en la documentación de la base de datos.
 
-```{r}
+
+``` r
 credit["V1"] = lapply(credit["V1"], FUN = as.factor)
 credit["V2"] = lapply(credit["V2"], FUN = as.numeric)
 credit["V3"] = lapply(credit["V3"], FUN = as.numeric)
@@ -112,23 +176,103 @@ credit["V16"] = lapply(credit["V16"], FUN = as.factor)
 head(credit)
 ```
 
+```
+##   V1    V2    V3 V4 V5 V6 V7   V8 V9 V10 V11 V12 V13 V14 V15 V16
+## 1  b 30.83 0.000  u  g  w  v 1.25  t   t   1   f   g 202   0   +
+## 2  a 58.67 4.460  u  g  q  h 3.04  t   t   6   f   g  43 560   +
+## 3  a 24.50 0.500  u  g  q  h 1.50  t   f   0   f   g 280 824   +
+## 4  b 27.83 1.540  u  g  w  v 3.75  t   t   5   t   g 100   3   +
+## 5  b 20.17 5.625  u  g  w  v 1.71  t   f   0   f   s 120   0   +
+## 6  b 32.08 4.000  u  g  m  v 2.50  t   f   0   t   g 360   0   +
+```
+
 Ahora observamos que la variable V4 solo tiene 3 niveles y debería de
 tener 4, es decir, hay algún valor que nunca aparece en los datos.
 Viendo en la descripción de la BBDD podemos ver que debería aparecer el
 valor "t". Lo añadimos:
 
-```{r}
+
+``` r
 levels(credit$V4)<-c(levels(credit$V4),"t")
 head(credit$V4)
+```
+
+```
+## [1] u u u u u u
+## Levels: l u y t
+```
+
+``` r
 head(credit)
+```
+
+```
+##   V1    V2    V3 V4 V5 V6 V7   V8 V9 V10 V11 V12 V13 V14 V15 V16
+## 1  b 30.83 0.000  u  g  w  v 1.25  t   t   1   f   g 202   0   +
+## 2  a 58.67 4.460  u  g  q  h 3.04  t   t   6   f   g  43 560   +
+## 3  a 24.50 0.500  u  g  q  h 1.50  t   f   0   f   g 280 824   +
+## 4  b 27.83 1.540  u  g  w  v 3.75  t   t   5   t   g 100   3   +
+## 5  b 20.17 5.625  u  g  w  v 1.71  t   f   0   f   s 120   0   +
+## 6  b 32.08 4.000  u  g  m  v 2.50  t   f   0   t   g 360   0   +
 ```
 
 Una vez corregido el tipos de datos y añadido las categorías faltantes
 nos queda la siguiente:
 
-```{r}
+
+``` r
 summary(credit)
+```
+
+```
+##     V1            V2              V3            V4         V5     
+##  a   :210   Min.   :13.75   Min.   : 0.000   l   :  2   g   :519  
+##  b   :468   1st Qu.:22.60   1st Qu.: 1.000   u   :519   gg  :  2  
+##  NA's: 12   Median :28.46   Median : 2.750   y   :163   p   :163  
+##             Mean   :31.57   Mean   : 4.759   t   :  0   NA's:  6  
+##             3rd Qu.:38.23   3rd Qu.: 7.207   NA's:  6             
+##             Max.   :80.25   Max.   :28.000                        
+##             NA's   :12                                            
+##        V6            V7            V8         V9      V10          V11      
+##  c      :137   v      :399   Min.   : 0.000   f:329   f:395   Min.   : 0.0  
+##  q      : 78   h      :138   1st Qu.: 0.165   t:361   t:295   1st Qu.: 0.0  
+##  w      : 64   bb     : 59   Median : 1.000                   Median : 0.0  
+##  i      : 59   ff     : 57   Mean   : 2.223                   Mean   : 2.4  
+##  aa     : 54   j      :  8   3rd Qu.: 2.625                   3rd Qu.: 3.0  
+##  (Other):289   (Other): 20   Max.   :28.500                   Max.   :67.0  
+##  NA's   :  9   NA's   :  9                                                  
+##  V12     V13          V14            V15           V16    
+##  f:374   g:625   Min.   :   0   Min.   :     0.0   -:383  
+##  t:316   p:  8   1st Qu.:  75   1st Qu.:     0.0   +:307  
+##          s: 57   Median : 160   Median :     5.0          
+##                  Mean   : 184   Mean   :  1017.4          
+##                  3rd Qu.: 276   3rd Qu.:   395.5          
+##                  Max.   :2000   Max.   :100000.0          
+##                  NA's   :13
+```
+
+``` r
 str(credit)
+```
+
+```
+## 'data.frame':	690 obs. of  16 variables:
+##  $ V1 : Factor w/ 2 levels "a","b": 2 1 1 2 2 2 2 1 2 2 ...
+##  $ V2 : num  30.8 58.7 24.5 27.8 20.2 ...
+##  $ V3 : num  0 4.46 0.5 1.54 5.62 ...
+##  $ V4 : Factor w/ 4 levels "l","u","y","t": 2 2 2 2 2 2 2 2 3 3 ...
+##  $ V5 : Factor w/ 3 levels "g","gg","p": 1 1 1 1 1 1 1 1 3 3 ...
+##  $ V6 : Factor w/ 14 levels "aa","c","cc",..: 13 11 11 13 13 10 12 3 9 13 ...
+##  $ V7 : Factor w/ 9 levels "bb","dd","ff",..: 8 4 4 8 8 8 4 8 4 8 ...
+##  $ V8 : num  1.25 3.04 1.5 3.75 1.71 ...
+##  $ V9 : Factor w/ 2 levels "f","t": 2 2 2 2 2 2 2 2 2 2 ...
+##  $ V10: Factor w/ 2 levels "f","t": 2 2 1 2 1 1 1 1 1 1 ...
+##  $ V11: num  1 6 0 5 0 0 0 0 0 0 ...
+##  $ V12: Factor w/ 2 levels "f","t": 1 1 1 2 1 2 2 1 1 2 ...
+##  $ V13: Factor w/ 3 levels "g","p","s": 1 1 1 1 3 1 1 1 1 1 ...
+##  $ V14: num  202 43 280 100 120 360 164 80 180 52 ...
+##  $ V15: num  0 560 824 3 0 ...
+##  $ V16: Factor w/ 2 levels "-","+": 2 2 2 2 2 2 2 2 2 2 ...
 ```
 
 ## Desanonimización de las variables
@@ -142,8 +286,13 @@ esta información puede ser importante para el futuro.
 La variable V1 se trata de un factor de 2 niveles como podemos ver a
 continuación:
 
-```{r}
+
+``` r
 levels(credit$V1)
+```
+
+```
+## [1] "a" "b"
 ```
 
 En el contexto de la base de datos (aprobación de crédito) esta variable
@@ -151,8 +300,15 @@ podría ser varias cosas: El sexo del cliente, si está en paro o no...
 Dado que es binaria. Para descartar opciones vamos a hacer una tabla de
 proporciones a ver como se distribuyen los valores.
 
-```{r}
+
+``` r
 prop.table(table(credit$V1))*100
+```
+
+```
+## 
+##        a        b 
+## 30.97345 69.02655
 ```
 
 Como podemos ver tenemos una clara tendencia al valor 'b'. En el
@@ -171,12 +327,20 @@ otras son columnas booleanas, es decir, verdadero o falso.
 Para esta variable numerica, analizamos el histograma para poder
 averiguar lo que representan.
 
-```{r}
+
+``` r
 ggplot(credit, aes(x = V2)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de credit$V2", x = "Valores de V2", y = "Frecuencia") +
   theme_minimal()
 ```
+
+```
+## Warning: Removed 12 rows containing non-finite outside the scale range
+## (`stat_bin()`).
+```
+
+![](Proyecto_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 Esta variable podría representar facilmente la edad ya que sigue una
 distribución normal en torno a los 20 años. También podría ser el dinero
@@ -195,7 +359,8 @@ una hipotéca.
 Continuando con V3, para analizar la distribución de valores comenzamos
 realizando el histograma dado que es una variable numérica:
 
-```{r}
+
+``` r
 myhist = ggplot(data=na.omit(credit),aes(V3)) +
   geom_histogram(col="orange",fill="orange",alpha=0.2) + 
   labs(title="Histograma para V3", y="Count") 
@@ -205,6 +370,12 @@ myhist = myhist + geom_vline(xintercept = median(credit$V3),
                              col="red",linetype="dashed")
 myhist
 ```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Proyecto_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 Como podemos ver hay una gran acumulación de valores en el rango [0-10],
 encontramos varios valores superiores pero una baja proporción. Dada
@@ -219,8 +390,13 @@ quedamos entre esas opciones.
 La variable V4 se trata de un factor de 4 niveles como podemos ver a
 continuación:
 
-```{r}
+
+``` r
 levels(credit$V4)
+```
+
+```
+## [1] "l" "u" "y" "t"
 ```
 
 En el contexto en el que estamos, esta variable podría ser varias cosas:
@@ -228,8 +404,15 @@ el sexo del cliente, si está en paro o no... Dado que es binaria. Para
 descartar opciones vamos a hacer una tabla de proporciones a ver como se
 distribuyen los valores.
 
-```{r}
+
+``` r
 prop.table(table(credit$V4))*100
+```
+
+```
+## 
+##          l          u          y          t 
+##  0.2923977 75.8771930 23.8304094  0.0000000
 ```
 
 Como podemos ver tenemos una clara tendencia al valor 'u'. Podría
@@ -250,8 +433,13 @@ Las razones por las que el banco guarda esto podría ser:
 Continuando con V5, estamos ante un factor, por lo que vamos a ver sus
 niveles:
 
-```{r}
+
+``` r
 levels(credit$V5)
+```
+
+```
+## [1] "g"  "gg" "p"
 ```
 
 Vemos que el factor tiene 3 niveles, podríamos estar ante el nivel de
@@ -260,8 +448,15 @@ temporal, desempleado)...
 
 Vamos a ver como se reparten estos:
 
-```{r}
+
+``` r
 prop.table(table(credit$V5))
+```
+
+```
+## 
+##           g          gg           p 
+## 0.758771930 0.002923977 0.238304094
 ```
 
 Como podemos ver, el factor tiene 3 niveles pero realmente del valor
@@ -274,8 +469,13 @@ con exactitud.
 
 Para comenzar con V6 analizamos sus factores:
 
-```{r}
+
+``` r
 levels(credit$V6)
+```
+
+```
+##  [1] "aa" "c"  "cc" "d"  "e"  "ff" "i"  "j"  "k"  "m"  "q"  "r"  "w"  "x"
 ```
 
 La variable V6 podría estar codificando el estilo de vida financiero del
@@ -285,8 +485,17 @@ con el estado de residencia de estos, ya que la base de datos que
 estamos tratando es la de un banco en Estados Unidos. Para tener una
 mejor idea de lo que se refiere vamos a hacer una tabla de frecuencias.
 
-```{r}
+
+``` r
 prop.table(table(credit$V6))*100
+```
+
+```
+## 
+##         aa          c         cc          d          e         ff          i 
+##  7.9295154 20.1174743  6.0205580  4.4052863  3.6710720  7.7826725  8.6637298 
+##          j          k          m          q          r          w          x 
+##  1.4684288  7.4889868  5.5800294 11.4537445  0.4405286  9.3979442  5.5800294
 ```
 
 Ya que hay varios niveles y hay pocos porcentajes que sean altos , nos
@@ -299,8 +508,13 @@ y a sus estados más próximos.
 
 Respecto a V7, como estamos ante un factor vamos a ver sus niveles:
 
-```{r}
+
+``` r
 levels(credit$V7)
+```
+
+```
+## [1] "bb" "dd" "ff" "h"  "j"  "n"  "o"  "v"  "z"
 ```
 
 Como podemos ver, tenemos un factor con bastantes niveles por tanto
@@ -308,8 +522,17 @@ podríamos estar ante una clasificación por tipo de empleo o sector,
 quizás también podría ser un identificador de la sucursal del banco en
 la que se solicitó el préstamo...
 
-```{r}
+
+``` r
 prop.table(table(credit$V7))*100
+```
+
+```
+## 
+##         bb         dd         ff          h          j          n          o 
+##  8.6637298  0.8810573  8.3700441 20.2643172  1.1747430  0.5873715  0.2936858 
+##          v          z 
+## 58.5903084  1.1747430
 ```
 
 Observando la tabla de proporciones, podemos ver como la gran mayoría se
@@ -324,13 +547,15 @@ analizamos en un histograma. Dado que los valores son pequeños, esta
 variable podría representar los años que lleva trabajando, número de
 transacciones...
 
-```{r}
+
+``` r
 ggplot(credit, aes(x = V8)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de credit$V8", x = "Valores de V8", y = "Frecuencia") +
   theme_minimal()
-
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 Si asumimos que es la experiencia laboral de los clientes, la mayoría de
 ellos llevan muy poco tiempo, lo que podría suponer riesgo ya que tienen
@@ -342,8 +567,13 @@ darle el credito o no, ya que es un factor importante.
 Procedemos con V9, estamos ante un factor por lo que comenzamos viendo
 los niveles:
 
-```{r}
+
+``` r
 levels(credit$V9)
+```
+
+```
+## [1] "f" "t"
 ```
 
 Estamos ante un factor de 2 niveles de valores 't' y 'f' por tanto es
@@ -358,15 +588,27 @@ incluso podría ser de otro tipo dado que hay multitud de opciones.
 
 Comenzamos viendo los niveles del factor:
 
-```{r}
+
+``` r
 levels(credit$V10)
+```
+
+```
+## [1] "f" "t"
 ```
 
 Estamos ante una variable booleana por tanto vamos a analizar la tabla
 de proporciones para ver si podemos decir saber algo más de esta
 
-```{r}
+
+``` r
 prop.table(table(credit$V10))*100
+```
+
+```
+## 
+##        f        t 
+## 57.24638 42.75362
 ```
 
 Viendo las proporciones, no podemos dejarnos influir por la letra en que
@@ -385,12 +627,15 @@ con solamente estos datos.
 Estamos ante una variable numérica por tanto vamos a ver el histograma
 para ver la distribución de datos:
 
-```{r}
+
+``` r
 ggplot(credit, aes(x = V11)) +
   geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de la Variable V11", x = "V11(original)", y = "Frecuencia") +
   theme_minimal()
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
 Observando el histograma, la variable V11 podría representar la cantidad
 de veces que un solicitante ha tenido un retraso o incumplimiento de
@@ -406,12 +651,24 @@ Esta variable es parecida a V1, ya que sus valores son bastante
 parecidos. La variable puede tomar dos tipos de valores, ya que es
 binaria.
 
-```{r}
+
+``` r
 levels(credit$V12)
 ```
 
-```{r}
+```
+## [1] "f" "t"
+```
+
+
+``` r
 prop.table(table(credit$V12))*100
+```
+
+```
+## 
+##       f       t 
+## 54.2029 45.7971
 ```
 
 Los valores como se puede observar están bastante igualados.Como es una
@@ -423,8 +680,13 @@ comentadas en V1, como el sexo del cliente, si está en paro o no...
 
 Estamos ante un factor por lo tanto vamos a ver los niveles de este
 
-```{r}
+
+``` r
 levels(credit$V13)
+```
+
+```
+## [1] "g" "p" "s"
 ```
 
 Tenemos un factor de tres niveles por lo que de nuevo es complicado
@@ -435,12 +697,20 @@ determinar que podría ser.
 Esta variable es numérica por lo tanto, hacemos el histograma para poder
 analizarlo mejor:
 
-```{r}
+
+``` r
 ggplot(credit, aes(x = V14)) +
   geom_histogram(binwidth = 14, fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de credit$V14", x = "Valores de V14", y = "Frecuencia") +
   theme_minimal()
 ```
+
+```
+## Warning: Removed 13 rows containing non-finite outside the scale range
+## (`stat_bin()`).
+```
+
+![](Proyecto_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 
 Como podemos ver, la mayoría de los valores se encuentran con
 frecuencias altas, viendo este histograma y suponiendo el contexto de la
@@ -455,12 +725,19 @@ correspondiente.
 La variable es numérica por tanto vamos a ver como se distribuyen los
 valores;
 
-```{r}
+
+``` r
 ggplot(credit, aes(x = V15)) +
   geom_histogram( fill = "blue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de V15", x = "Valores de V15", y = "Frecuencia") +
   theme_minimal()
 ```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Proyecto_files/figure-html/unnamed-chunk-28-1.png)<!-- -->
 
 A juzgar por las cifras y la dispersión de valores,podríamos estar
 claramente ante los ingresos de los clientes, es sin dudad la variable
@@ -474,8 +751,13 @@ ingresos.
 
 Para comenzar vamos a ver los niveles ya que es un factor:
 
-```{r}
+
+``` r
 levels(credit$V16)
+```
+
+```
+## [1] "-" "+"
 ```
 
 Para esta variable, hay poco que comentar debido a que en la
@@ -487,8 +769,14 @@ significa denegado.
 
 ### Análisis V2
 
-```{r}
+
+``` r
 summary(credit$V2)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##   13.75   22.60   28.46   31.57   38.23   80.25      12
 ```
 
 -   **Rango de valores**: La variable `V2` tiene un rango bastante
@@ -514,7 +802,8 @@ summary(credit$V2)
 Para estar seguros de la distribución que sigue v2, creamos un
 histograma de dicha variable:
 
-```{r}
+
+``` r
 myhist = ggplot(data = na.omit(credit), aes(V2)) +
   geom_histogram(binwidth = 0.5, col = "orange", fill = "orange", alpha = 0.2) + 
   labs(title = "Histograma para V2", y = "Count") +
@@ -522,9 +811,9 @@ myhist = ggplot(data = na.omit(credit), aes(V2)) +
   geom_vline(xintercept = median(na.omit(credit$V2)), col = "red", linetype = "dashed")
 
 myhist
-
-
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
 
 La distribución es **asimétrica a la derecha** o **sesgada
 positivamente,** como se había inferido anteriormente. La mayoría de los
@@ -535,7 +824,8 @@ Hay algunos valores dispersos hacia la derecha que elevan el promedio,
 lo que sugiere que existen **valores atípicos** o extremos en el extremo
 superior.
 
-```{r}
+
+``` r
 myplot = ggplot(data=na.omit(credit),aes(sample=V2)) +
   ggtitle("QQ plot para V2") +
   geom_qq() + 
@@ -543,6 +833,8 @@ myplot = ggplot(data=na.omit(credit),aes(sample=V2)) +
   xlab("Distribución teórica") + ylab("Distribución muestral")
 myplot
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-32-1.png)<!-- -->
 
 El gráfico Q-Q muestra cómo se distribuyen los datos en comparación con
 una **distribución normal teórica**.
@@ -560,8 +852,14 @@ una **distribución normal teórica**.
 
 ### Análisis de V3
 
-```{r}
+
+``` r
 summary(credit$V3)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.000   1.000   2.750   4.759   7.207  28.000
 ```
 
 Características de nuestros datos:
@@ -586,7 +884,8 @@ Características de nuestros datos:
     Para confirmar los valores atípicos y como se distribuyen los datos
     en la variable representamos los valores en el histograma:
 
-```{r}
+
+``` r
 myhist=ggplot(data=credit, aes(x = V3)) +
   geom_histogram(col = "orange", fill = "orange", alpha = 0.2,
                  breaks = seq(0, 30, by = 1)) +
@@ -601,6 +900,8 @@ myhist <- myhist + geom_vline(xintercept = median(credit$V3),
                               col = "red", linetype = "dashed")
 myhist
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-34-1.png)<!-- -->
 
 La mayoría de los valores están concentrados cerca de cero, lo que
 indica que **V3** tiene una distribución sesgada hacia la izquierda
@@ -623,12 +924,15 @@ normalizarla.
 Para poder intuir si una muestra sigue una determinada distribución
 estadística se pueden usar los diagramas del tipo Q−Q.
 
-```{r}
+
+``` r
 ggplot(credit, aes(sample = V3)) +
   stat_qq() +
   stat_qq_line(color = "blue", linetype = "dashed") +
   labs(title = "Diagrama Q-Q de V3", x = "Cuantiles Teóricos", y = "Cuantiles Muestrales")
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
 
 Los puntos en el gráfico no siguen la línea diagonal azul (que
 representa la distribución normal), especialmente en los extremos
@@ -638,8 +942,14 @@ positivo), lo cual concuerda con el histograma observado anteriormente.
 
 ### Análisis V8
 
-```{r}
+
+``` r
 summary(credit$V8)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   0.000   0.165   1.000   2.223   2.625  28.500
 ```
 
 Como podemos observar en el resumen de la variable, la media es bastante
@@ -653,7 +963,8 @@ mediana pero el valor máximo es muy dispar.
 Para poder ver como se distribuyen los datos en nuestra variable creamos
 los siguientes plots:
 
-```{r}
+
+``` r
 myhist = ggplot(data=credit, aes(x = V8)) +
   geom_histogram(col="orange", fill="orange", alpha=0.2,
                  breaks=seq(0, 30, by=1)) + 
@@ -672,15 +983,19 @@ myhist = myhist + geom_vline(xintercept = median(credit$V8),
 myhist
 ```
 
-```{r}
+![](Proyecto_files/figure-html/unnamed-chunk-37-1.png)<!-- -->
+
+
+``` r
 ggplot(data = credit, aes(sample = V8)) +
   ggtitle("QQ plot para variable V8") +
   stat_qq() + 
   stat_qq_line() +
   xlab("Distribución teórica") +
   ylab("Distribución muestral")
-
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-38-1.png)<!-- -->
 
 Como podemos observar en el histograma estamos ante una distribución
 asimétrica positiva, sesgada a la derecha, ya que la mayor parte de los
@@ -698,12 +1013,21 @@ distribución teórica normal representada por la recta.
 
 ## Analisis multivariable
 
-```{r}
 
+``` r
 ggpairs(na.omit(credit), columns = c("V2", "V3", "V8","V14","V15", "V16")
 ,aes(color = V16, alpha = 0.6), title = "Análisis Multivariable de V2 V3 V8 V14 Y V15")
+```
 
 ```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Proyecto_files/figure-html/unnamed-chunk-39-1.png)<!-- -->
 
 Se ha coloreado el gráfico mediante la variable categórica V16 la cual
 determina si el crédito fue aprobado o no.
@@ -736,7 +1060,8 @@ de la BBDD.
 
 ## Variable V2, V3 y V14
 
-```{r}
+
+``` r
 Q1=quantile(na.omit(credit$V2),0.25)
 Q3=quantile(na.omit(credit$V2),0.75)
 RIC=Q3-Q1
@@ -745,10 +1070,14 @@ limiteSuperior=Q3+1.5*RIC
 atipicos=na.omit(credit$V2)[na.omit(credit$V2)<limiteInferior | na.omit(credit$V2)>limiteSuperior] 
 percAtipicos=100*length(atipicos)/length((na.omit(credit$V2)))
 print(paste("El porcentaje de datos atípicos para V2 es = ",percAtipicos))
-
 ```
 
-```{r}
+```
+## [1] "El porcentaje de datos atípicos para V2 es =  2.3598820058997"
+```
+
+
+``` r
 Q1=quantile(na.omit(credit$V3),0.25)
 Q3=quantile(na.omit(credit$V3),0.75)
 RIC=Q3-Q1
@@ -759,7 +1088,12 @@ percAtipicos=100*length(atipicos)/length((na.omit(credit$V3)))
 print(paste("El porcentaje de datos atípicos para V3 es = ",percAtipicos))
 ```
 
-```{r}
+```
+## [1] "El porcentaje de datos atípicos para V3 es =  2.46376811594203"
+```
+
+
+``` r
 Q1=quantile(na.omit(credit$V14),0.25)
 Q3=quantile(na.omit(credit$V14),0.75)
 RIC=Q3-Q1
@@ -768,6 +1102,10 @@ limiteSuperior=Q3+1.5*RIC
 atipicos=na.omit(credit$V14)[na.omit(credit$V14)<limiteInferior | na.omit(credit$V14)>limiteSuperior] 
 percAtipicos=100*length(atipicos)/length((na.omit(credit$V14)))
 print(paste("El porcentaje de datos atípicos para V14 es = ",percAtipicos))
+```
+
+```
+## [1] "El porcentaje de datos atípicos para V14 es =  1.92023633677991"
 ```
 
 Como podemos ver el porcentaje de valores atípicos es muy bajo. Por
@@ -779,7 +1117,8 @@ para el modelo que ayude a aprender sobre situaciones fuera de lo común.
 
 ## Variable V8
 
-```{r}
+
+``` r
 Q1=quantile(na.omit(credit$V8),0.25)
 Q3=quantile(na.omit(credit$V8),0.75)
 RIC=Q3-Q1
@@ -790,12 +1129,18 @@ percAtipicos=100*length(atipicos)/length((na.omit(credit$V8)))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
 
-```{r}
+```
+## [1] "El porcentaje de datos atípicos es =  9.1304347826087"
+```
+
+
+``` r
 ggplot(credit, aes(x = V8)) +
   geom_histogram(bins = 30, fill = "orange", color = "black", alpha = 0.7) +
   labs(title = "Histograma de V8 original", x = "V8 (original)", y = "Frecuencia")
-
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-44-1.png)<!-- -->
 
 Viendo el histograma podemos comprobar que tenemos una distribución
 sesgada a la derecha, con una larga cola de valores. La mayor
@@ -803,12 +1148,15 @@ concetración de valores se encuenta entre el 0 y el 5, aproximadamente.
 El resto de valores podrían ser considerados como $outliers$. Para
 asegurarnos, realizamos el whisker plot:
 
-```{r}
+
+``` r
 ggplot(credit, aes(y = V8)) +
   geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 16) +
   labs(title = "Boxplot de V8", y = "V8", x = "") +
   theme_minimal()
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-45-1.png)<!-- -->
 
 Confirmando lo dicho anteriormente, podemos ver como tenemos una gran
 cantidad de valores fuera de rango por la parte superior del RIC. Este
@@ -818,7 +1166,8 @@ adelante.
 
 ## Variable V11
 
-```{r}
+
+``` r
 Q1=quantile(na.omit(credit$V11),0.25)
 Q3=quantile(na.omit(credit$V11),0.75)
 RIC=Q3-Q1
@@ -829,23 +1178,33 @@ percAtipicos=100*length(atipicos)/length((na.omit(credit$V11)))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
 
-```{r}
+```
+## [1] "El porcentaje de datos atípicos es =  11.4492753623188"
+```
+
+
+``` r
 ggplot(credit, aes(x = V11)) +
   geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de la Variable V11", x = "V11(original)", y = "Frecuencia") +
   theme_minimal()
 ```
 
+![](Proyecto_files/figure-html/unnamed-chunk-47-1.png)<!-- -->
+
 Como vemos, la mayor parte de valores se encuentran concentrados en
 torno al 0. El histograma nos delata como hay bastantes valores fuera de
 rango. Para confirmarlo vemos el whisker plot:
 
-```{r}
+
+``` r
 ggplot(credit, aes(y = V11)) +
   geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 16) +
   labs(title = "Boxplot de V11", y = "V11", x = "") +
   theme_minimal()
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-48-1.png)<!-- -->
 
 Confirmamos lo dicho anteriormente, podemos ver como hay muchisimos
 valores fuera del RIC. Estos valores más adelante valoraremos su efecto
@@ -853,7 +1212,8 @@ y el tratamiento que le daremos.
 
 ## Variable V15
 
-```{r}
+
+``` r
 Q1=quantile(na.omit(credit$V15),0.25)
 Q3=quantile(na.omit(credit$V15),0.75)
 RIC=Q3-Q1
@@ -864,12 +1224,19 @@ percAtipicos=100*length(atipicos)/length((na.omit(credit$V15)))
 print(paste("El porcentaje de datos atípicos es = ",percAtipicos))
 ```
 
-```{r}
+```
+## [1] "El porcentaje de datos atípicos es =  16.3768115942029"
+```
+
+
+``` r
 ggplot(credit, aes(x = V15)) +
   geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
   labs(title = "Histograma de la Variable V15", x = "V15", y = "Frecuencia") +
   theme_minimal()
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-50-1.png)<!-- -->
 
 Al igual que con la variable anterior, la mayor concentración de valores
 esta en torno al 0. Esto nos puede llevar a que las variables tengan una
@@ -880,12 +1247,15 @@ bajos.
 
 Analizamos el whisker plot:
 
-```{r}
+
+``` r
 ggplot(credit, aes(y = V15)) +
   geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 16) +
   labs(title = "Boxplot de V15", y = "V15", x = "") +
   theme_minimal()
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-51-1.png)<!-- -->
 
 Como podemos ver, la caja que representa el RIC es muy fina debido a lo
 que hemos comentado anteriormente, la alta concentración en torno al 0.
@@ -907,7 +1277,8 @@ el modelo ha visto los datos utilizados para evaluarlo obteniendo
 mejores resultados de los que realmente debería.. Así que lo primero que
 debemos hacer es dividir los datos y dejar de un lado los datos de test.
 
-```{r}
+
+``` r
 credit.trainIdx<-readRDS("credit.trainIdx")
 credit.Datos.Train<-credit[credit.trainIdx,]
 credit.Datos.Test<-credit[-credit.trainIdx,]
@@ -916,8 +1287,13 @@ credit.Datos.Test<-credit[-credit.trainIdx,]
 Después comprobamos que efectivamente, tenemos 553 observaciones tal y
 como se dice en la especificación de la práctica.
 
-```{r}
+
+``` r
 nrow(credit.Datos.Train)
+```
+
+```
+## [1] 553
 ```
 
 # Pre-procesado de datos(III): Eliminar nulos, predictores correlados o de poca Varianza
@@ -934,8 +1310,13 @@ Antes de comenzar, para tomar medida de cuán serio es el problema de los
 valores nulos, debemos contar los casos que tienen valores nulos, y lo
 hacemos con $complete.cases()$.
 
-```{r}
+
+``` r
 nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
+```
+
+```
+## [1] 37
 ```
 
 Tenemos un total de 37 filas, de 553, aproximadamente un 4% de casos.
@@ -950,9 +1331,21 @@ ese hecho para así generar sustitutos para los valores nulos, mediante
 una técnica que introduce poco sesgo y sigue teniendo un bajo coste
 computacional.
 
-```{r}
-symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], use = "complete.obs"))
 
+``` r
+symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], use = "complete.obs"))
+```
+
+```
+##     V2 V3 V8 V11 V14 V15
+## V2  1                   
+## V3     1                
+## V8  .  .  1             
+## V11       .  1          
+## V14              1      
+## V15                  1  
+## attr(,"legend")
+## [1] 0 ' ' 0.3 '.' 0.6 ',' 0.8 '+' 0.9 '*' 0.95 'B' 1
 ```
 
 La matriz de correlación simbólica muestra que **no hay correlaciones
@@ -979,12 +1372,15 @@ nos permite modificar lo datos para facilitar el entrenamiento de
 modelos. Veamos ahora los comandos para asignar los valores nulos o
 missing usando $medianImpute$
 
-```{r}
 
+``` r
 preproc <- preProcess(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], method = "medianImpute")
 credit_num_imputed <- predict(preproc, credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)])
 sum(is.na(credit_num_imputed))
+```
 
+```
+## [1] 0
 ```
 
 Tras comprobar que el numero de valores NA es 0, comprobamos que nuestro
@@ -997,8 +1393,8 @@ moda, se reemplazan los valores nulos con el valor más frecuente de esa
 variable (moda). Esta técnica es sencilla, rápida y mantiene una
 distribución similar a la original de los datos.
 
-```{r}
 
+``` r
 credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)] <- credit_num_imputed
 
 imputar_moda <- function(x) {
@@ -1013,8 +1409,18 @@ credit.Datos.Train <- data.frame(lapply(credit.Datos.Train, imputar_moda))
 nrow(credit.Datos.Train[!complete.cases(credit.Datos.Train),])
 ```
 
-```{r}
+```
+## [1] 0
+```
+
+
+``` r
 credit.Datos.Train[!complete.cases(credit.Datos.Train),]
+```
+
+```
+##  [1] V1  V2  V3  V4  V5  V6  V7  V8  V9  V10 V11 V12 V13 V14 V15 V16
+## <0 rows> (o 0- extensión row.names)
 ```
 
 El proceso ha tenido éxito, lo comprobamos ya que obtenemos que la base
@@ -1022,8 +1428,14 @@ de datos arreglada tiene 0 valores NA.
 
 Ahora vamos a analizar los valores nulos en los datos de Test:
 
-```{r}
+
+``` r
 credit.Datos.Test[!complete.cases(credit.Datos.Test),]
+```
+
+```
+##  [1] V1  V2  V3  V4  V5  V6  V7  V8  V9  V10 V11 V12 V13 V14 V15 V16
+## <0 rows> (o 0- extensión row.names)
 ```
 
 Como observamos no tenemos ningún valor nulo en este conjunto, por lo
@@ -1039,8 +1451,13 @@ tanto, vamos a proceder a identificar las variables que tienen escasa
 varianza para ser eliminadas. Para llevar esto a cabo, utilizaremos la
 función $nearZeroVar()$:
 
-```{r}
+
+``` r
 nearZeroVar(credit.Datos.Train)
+```
+
+```
+## integer(0)
 ```
 
 Como podemos ver, la funcion nos devuelve **0**, por tanto no tenemos
@@ -1049,8 +1466,21 @@ eliminada.
 
 ## Eliminar variables correladas
 
-```{r}
+
+``` r
 symnum(cor(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]))
+```
+
+```
+##     V2 V3 V8 V11 V14 V15
+## V2  1                   
+## V3     1                
+## V8  .  .  1             
+## V11       .  1          
+## V14              1      
+## V15                  1  
+## attr(,"legend")
+## [1] 0 ' ' 0.3 '.' 0.6 ',' 0.8 '+' 0.9 '*' 0.95 'B' 1
 ```
 
 Como podemos observar en el grafico, no existen variables númericas con
@@ -1076,7 +1506,8 @@ la propiedad de invarianza al escalado.
 
 Procedemos con la normalización.
 
-```{r}
+
+``` r
 credit.Datos.Train.Normalizados=credit.Datos.Train
 preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], method = c("center", "scale"), 
                       center = apply(credit.Datos.Train[, c("V8", "V11", "V15")], 2, median), 
@@ -1084,7 +1515,16 @@ preproc <- preProcess(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")], 
 
 credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")] <- predict(preproc, credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
 head(credit.Datos.Train.Normalizados[, c("V8", "V11", "V15")])
+```
 
+```
+##           V8        V11         V15
+## 1 -0.2661186 -0.2854235 -0.18954660
+## 2  0.4906544  0.5008241 -0.18902246
+## 3 -0.1268724 -0.4819854 -0.18954660
+## 4  0.1122679 -0.4819854 -0.18954660
+## 5  1.3231046 -0.4819854  5.27630560
+## 6 -0.6323967 -0.4819854  0.04613934
 ```
 
 Como podemos comprobar, hemos aplicado la normalización correctamente.
@@ -1105,7 +1545,8 @@ distribución.
 
 Aplicamos la transformación logarítmica para las variables mencionadas.
 
-```{r}
+
+``` r
 credit.Datos.Train.Normalizados$V2=log1p(credit.Datos.Train.Normalizados$V2)
 credit.Datos.Train.Normalizados$V3=log1p(credit.Datos.Train.Normalizados$V3)
 credit.Datos.Train.Normalizados$V14=log1p(credit.Datos.Train.Normalizados$V14)
@@ -1123,7 +1564,8 @@ método ya que consideramos que es el más adecuado para los tipos de
 variable que tenemos ya que mantienen la distribución original de los
 datos, solo modifica su escalado.
 
-```{r}
+
+``` r
 min_max_normalize <- function(x) {
   return((x - min(x)) / (max(x) - min(x)))
 }
@@ -1136,8 +1578,19 @@ credit.Datos.Train.Normalizados$V14=min_max_normalize(credit.Datos.Train.Normali
 Ahora comprobamos que se ha realizado correctamente, ya que los valores
 de encuentran entre 0 y 1.
 
-```{r}
+
+``` r
 summary(credit.Datos.Train.Normalizados[, c("V2", "V3", "V14")])
+```
+
+```
+##        V2               V3              V14        
+##  Min.   :0.0000   Min.   :0.0000   Min.   :0.0000  
+##  1st Qu.:0.2730   1st Qu.:0.2058   1st Qu.:0.5781  
+##  Median :0.3928   Median :0.3925   Median :0.6685  
+##  Mean   :0.4230   Mean   :0.4153   Mean   :0.5553  
+##  3rd Qu.:0.5508   3rd Qu.:0.6355   3rd Qu.:0.7380  
+##  Max.   :1.0000   Max.   :1.0000   Max.   :1.0000
 ```
 
 ### Aplicando cambios a datos de test
@@ -1145,7 +1598,8 @@ summary(credit.Datos.Train.Normalizados[, c("V2", "V3", "V14")])
 A continuación, vamos a aplicar todos los cambios realizados a los datos
 de test.
 
-```{r}
+
+``` r
 credit.Datos.Test.Normalizados=credit.Datos.Test
 credit.Datos.Test.Normalizados$V2=log1p(credit.Datos.Test.Normalizados$V2)
 credit.Datos.Test.Normalizados$V3=log1p(credit.Datos.Test.Normalizados$V3)
@@ -1170,14 +1624,16 @@ entrenamos el modelo con los datos que tenemos y posteriormente
 revisamos la importancia de cada variable para analizar si hay alguna
 candidata a eliminar.
 
-```{r}
+
+``` r
 predictors <- credit.Datos.Train[, -which(names(credit.Datos.Train) == "V16")]
 target <- credit.Datos.Train$V16
 rf_model <- randomForest(x = predictors, y = target, importance = TRUE)
 importance_rf <- importance(rf_model)
 varImpPlot(rf_model)
-
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-67-1.png)<!-- -->
 
 El diagrama de la izquierda muestra la importancia de cada variable en
 la precisión del modelo (MeanDecreaseAccuracy). Este valor indica cuánto
@@ -1198,7 +1654,8 @@ tienen importancia en la adquisición de conocimiento del modelo.Sin
 embargo, V12,V1 y V4, son redundantes en ambas gráficas, por tanto
 procedemos a eliminarlas.
 
-```{r}
+
+``` r
 credit.Datos.Train.Rf=credit.Datos.Train
 credit.Datos.Train.Rf <- credit.Datos.Train.Rf[, !(names(credit.Datos.Train.Rf) %in% c("V1", "V12", "V4"))]
 ```
@@ -1211,7 +1668,8 @@ Ya hemos analizado anteriormente las variables viendo que todas
 presentan un sesgo positivo, para reducirlo aplicamos una transformación
 logarítmica:
 
-```{r}
+
+``` r
 credit.Datos.Train.Rf$V2=log1p(credit.Datos.Train.Rf$V2)
 credit.Datos.Train.Rf$V3=log1p(credit.Datos.Train.Rf$V3)
 credit.Datos.Train.Rf$V8=log1p(credit.Datos.Train.Rf$V8)
@@ -1224,6 +1682,8 @@ ggplot(credit.Datos.Train, aes(x = V2)) +
   theme_minimal()
 ```
 
+![](Proyecto_files/figure-html/unnamed-chunk-69-1.png)<!-- -->
+
 Como podemos ver, por ejemplo, en el histograma de la variable V2 se ha
 corregido en gran medida el sesgo ganando algo de simetría, por tanto la
 transformación se ha aplicado correctamente.
@@ -1235,7 +1695,8 @@ podríamos capacidad de generalización en el modelo entrenado.
 
 Aplicamos estos cambios a los datos de test:
 
-```{r}
+
+``` r
 credit.Datos.Test.Rf=credit.Datos.Test
 credit.Datos.Test.Rf <- credit.Datos.Test.Rf[, !(names(credit.Datos.Test.Rf) %in% c("V1", "V12", "V4"))]
 credit.Datos.Test.Rf$V2=log1p(credit.Datos.Test.Rf$V2)
@@ -1256,7 +1717,8 @@ secciones como algoritmos de aprendizaje.
 Para comenzar, vamos a empezar entrenando el algorítmo que no necesita
 noramlización.
 
-```{r}
+
+``` r
 set.seed(1234)
 
 control <- trainControl(method = "cv", number = 10)
@@ -1268,7 +1730,6 @@ modelo_rf_cv <- train(
     trControl = control,
     tuneLength = 5
 )
-
 ```
 
 Al aplicar el set.seed, nos estamos asegurando de que los resultados
@@ -1293,13 +1754,68 @@ en un espacio de 5 combinaciones posibles. En este caso el
 hiperparámetro ajustable es $mtry$, el cual indica el numero de
 predictores considerados al dividir nodos en cada árbol.
 
-```{r}
+
+``` r
 print(modelo_rf_cv)
 ```
 
-```{r}
+```
+## Random Forest 
+## 
+## 553 samples
+##  12 predictor
+##   2 classes: '-', '+' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold) 
+## Summary of sample sizes: 498, 499, 497, 497, 497, 498, ... 
+## Resampling results across tuning parameters:
+## 
+##   mtry  Accuracy   Kappa    
+##    2    0.8700253  0.7323281
+##    9    0.8735666  0.7452971
+##   17    0.8680123  0.7343778
+##   25    0.8681433  0.7348916
+##   33    0.8646392  0.7276932
+## 
+## Accuracy was used to select the optimal model using the largest value.
+## The final value used for the model was mtry = 9.
+```
+
+
+``` r
 predicciones <- predict(modelo_rf_cv, newdata = credit.Datos.Test.Rf)
 confusionMatrix(predicciones, credit.Datos.Test.Rf$V16)
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 62  7
+##          + 14 54
+##                                           
+##                Accuracy : 0.8467          
+##                  95% CI : (0.7753, 0.9025)
+##     No Information Rate : 0.5547          
+##     P-Value [Acc > NIR] : 3.197e-13       
+##                                           
+##                   Kappa : 0.6932          
+##                                           
+##  Mcnemar's Test P-Value : 0.1904          
+##                                           
+##             Sensitivity : 0.8158          
+##             Specificity : 0.8852          
+##          Pos Pred Value : 0.8986          
+##          Neg Pred Value : 0.7941          
+##              Prevalence : 0.5547          
+##          Detection Rate : 0.4526          
+##    Detection Prevalence : 0.5036          
+##       Balanced Accuracy : 0.8505          
+##                                           
+##        'Positive' Class : -               
+## 
 ```
 
 Los resultados muestran una precisión del 84.67% en el conjunto de test,
@@ -1318,7 +1834,8 @@ logrando una precisión balanceada del 85.05%.
 
 ## Redes Neuronales
 
-```{r}
+
+``` r
 set.seed(1234)
 modelo_nnet <- train(
     V16 ~ .,                           
@@ -1330,11 +1847,87 @@ modelo_nnet <- train(
 )
 ```
 
-```{r}
+
+``` r
 print(modelo_nnet)
+```
+
+```
+## Neural Network 
+## 
+## 553 samples
+##  15 predictor
+##   2 classes: '-', '+' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold) 
+## Summary of sample sizes: 498, 499, 497, 497, 497, 498, ... 
+## Resampling results across tuning parameters:
+## 
+##   size  decay  Accuracy   Kappa    
+##   1     0e+00  0.8590139  0.7137698
+##   1     1e-04  0.8427140  0.6820806
+##   1     1e-03  0.8624579  0.7229277
+##   1     1e-02  0.8480075  0.6927641
+##   1     1e-01  0.8552477  0.7069905
+##   3     0e+00  0.8371633  0.6714586
+##   3     1e-04  0.8336556  0.6625385
+##   3     1e-03  0.8229113  0.6386600
+##   3     1e-02  0.8319721  0.6588632
+##   3     1e-01  0.8447006  0.6828112
+##   5     0e+00  0.8409632  0.6778613
+##   5     1e-04  0.8283033  0.6533292
+##   5     1e-03  0.7976852  0.5896776
+##   5     1e-02  0.8208297  0.6361611
+##   5     1e-01  0.8626539  0.7216255
+##   7     0e+00  0.7830363  0.5584537
+##   7     1e-04  0.8319721  0.6603619
+##   7     1e-03  0.8263456  0.6475347
+##   7     1e-02  0.8117051  0.6181264
+##   7     1e-01  0.8553463  0.7074331
+##   9     0e+00  0.7921657  0.5784831
+##   9     1e-04  0.8137518  0.6229644
+##   9     1e-03  0.8062494  0.6079010
+##   9     1e-02  0.8190777  0.6343521
+##   9     1e-01  0.8553812  0.7054211
+## 
+## Accuracy was used to select the optimal model using the largest value.
+## The final values used for the model were size = 5 and decay = 0.1.
+```
+
+``` r
 predicciones <- predict(modelo_nnet, credit.Datos.Test.Normalizados) 
 confusionMatrix(predicciones, credit.Datos.Test$V16)
+```
 
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 61  9
+##          + 15 52
+##                                           
+##                Accuracy : 0.8248          
+##                  95% CI : (0.7506, 0.8844)
+##     No Information Rate : 0.5547          
+##     P-Value [Acc > NIR] : 2.175e-11       
+##                                           
+##                   Kappa : 0.6488          
+##                                           
+##  Mcnemar's Test P-Value : 0.3074          
+##                                           
+##             Sensitivity : 0.8026          
+##             Specificity : 0.8525          
+##          Pos Pred Value : 0.8714          
+##          Neg Pred Value : 0.7761          
+##              Prevalence : 0.5547          
+##          Detection Rate : 0.4453          
+##    Detection Prevalence : 0.5109          
+##       Balanced Accuracy : 0.8275          
+##                                           
+##        'Positive' Class : -               
+## 
 ```
 
 Los resultados muestran una precisión del 82.48% en el conjunto de test,
@@ -1354,8 +1947,15 @@ precisión balanceada del 82.75%.
 Para continuar, vamos a analizar que hiperparámetros se pueden ajustar
 en el modelo NNET. Para ello, ejecutamos el siguiente comando:
 
-```{r}
+
+``` r
 modelLookup(("nnet"))
+```
+
+```
+##   model parameter         label forReg forClass probModel
+## 1  nnet      size #Hidden Units   TRUE     TRUE      TRUE
+## 2  nnet     decay  Weight Decay   TRUE     TRUE      TRUE
 ```
 
 En el modelo nnet hemos ajustado dos hiperparámetros clave: size y
@@ -1371,7 +1971,8 @@ evaluadas directamente en el conjunto de test, y la precisión se calculó
 para cada configuración, almacenando los resultados para identificar la
 mejor combinación de nodos y regularización.
 
-```{r}
+
+``` r
   grid <- expand.grid(
     size = c(1, 3, 5, 7),              
     decay = c(1e-05, 1e-04, 1e-03, 1e-02) 
@@ -1405,8 +2006,26 @@ mejor combinación de nodos y regularización.
  
   resultados <- resultados[order(-resultados$precision_test), ]
   print(resultados)
+```
 
-
+```
+##            size decay precision_test
+## Accuracy10    5 1e-03      0.8759124
+## Accuracy1     3 1e-05      0.8613139
+## Accuracy15    7 1e-02      0.8540146
+## Accuracy2     5 1e-05      0.8467153
+## Accuracy11    7 1e-03      0.8467153
+## Accuracy12    1 1e-02      0.8467153
+## Accuracy3     7 1e-05      0.8394161
+## Accuracy4     1 1e-04      0.8394161
+## Accuracy9     3 1e-03      0.8321168
+## Accuracy8     1 1e-03      0.8248175
+## Accuracy14    5 1e-02      0.8248175
+## Accuracy6     5 1e-04      0.8102190
+## Accuracy7     7 1e-04      0.7518248
+## Accuracy13    3 1e-02      0.7226277
+## Accuracy      1 1e-05      0.7080292
+## Accuracy5     3 1e-04      0.6788321
 ```
 
 El bucle evalúa diferentes combinaciones de los hiperparámetros size
@@ -1422,7 +2041,8 @@ mejores hiperparámetros. Este enfoque permite controlar directamente el
 rendimiento del modelo en datos no vistos y ajustar el balance entre su
 flexibilidad y capacidad de generalización.
 
-```{r}
+
+``` r
 mejores_parametros <- resultados[1, ] 
 size_mejor <- mejores_parametros$size
 decay_mejor <- mejores_parametros$decay
@@ -1438,7 +2058,36 @@ nnet_tuned <- train(
 )
 predicciones_final <- predict(nnet_tuned, newdata = credit.Datos.Test)
 confusionMatrix(predicciones_final, credit.Datos.Test$V16)
+```
 
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 67  8
+##          +  9 53
+##                                          
+##                Accuracy : 0.8759         
+##                  95% CI : (0.8088, 0.926)
+##     No Information Rate : 0.5547         
+##     P-Value [Acc > NIR] : 5.29e-16       
+##                                          
+##                   Kappa : 0.7492         
+##                                          
+##  Mcnemar's Test P-Value : 1              
+##                                          
+##             Sensitivity : 0.8816         
+##             Specificity : 0.8689         
+##          Pos Pred Value : 0.8933         
+##          Neg Pred Value : 0.8548         
+##              Prevalence : 0.5547         
+##          Detection Rate : 0.4891         
+##    Detection Prevalence : 0.5474         
+##       Balanced Accuracy : 0.8752         
+##                                          
+##        'Positive' Class : -              
+## 
 ```
 
 Los resultados muestran una precisión del 87.59% en el conjunto de test,
@@ -1457,7 +2106,8 @@ logrando una precisión balanceada del 87.52%.
 
 ## K-Nearest-Neighbors (KNN)
 
-```{r}
+
+``` r
 set.seed(1234)
 knn_model <- train(
     V16 ~ .,                          
@@ -1468,9 +2118,40 @@ knn_model <- train(
 )
 ```
 
-```{r}
+
+``` r
 knn_predictions <- predict(knn_model, newdata = credit.Datos.Test.Normalizados)
 confusionMatrix(knn_predictions, credit.Datos.Test.Normalizados$V16)
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 69  9
+##          +  7 52
+##                                           
+##                Accuracy : 0.8832          
+##                  95% CI : (0.8173, 0.9318)
+##     No Information Rate : 0.5547          
+##     P-Value [Acc > NIR] : <2e-16          
+##                                           
+##                   Kappa : 0.7628          
+##                                           
+##  Mcnemar's Test P-Value : 0.8026          
+##                                           
+##             Sensitivity : 0.9079          
+##             Specificity : 0.8525          
+##          Pos Pred Value : 0.8846          
+##          Neg Pred Value : 0.8814          
+##              Prevalence : 0.5547          
+##          Detection Rate : 0.5036          
+##    Detection Prevalence : 0.5693          
+##       Balanced Accuracy : 0.8802          
+##                                           
+##        'Positive' Class : -               
+## 
 ```
 
 Los resultados del modelo **k-Nearest Neighbors (k-NN)** muestran una
@@ -1490,9 +2171,12 @@ balanceada del 88.02%. El mejor valor de hiperparámetro `k` encontrado
 fue 5, lo que permite capturar una buena cantidad de vecinos cercanos
 para la clasificación sin perder generalización.
 
-```{r}
+
+``` r
 plot(knn_model)
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-81-1.png)<!-- -->
 
 La gráfica muestra cómo cambia la precisión del modelo k-Nearest
 Neighbors (k-NN) durante la validación cruzada al ajustar el número de
@@ -1509,7 +2193,8 @@ valor óptimo para el modelo.
 
 ## Gradient Boosting Machine (GBM)
 
-```{r}
+
+``` r
 set.seed(1234)
 suppressWarnings({
 gbm_model_original <- train(
@@ -1520,14 +2205,93 @@ gbm_model_original <- train(
     tuneLength = 5,
     verbose = FALSE                
 )})
-
 ```
 
-```{r}
+
+``` r
 print(gbm_model_original)
+```
+
+```
+## Stochastic Gradient Boosting 
+## 
+## 553 samples
+##  15 predictor
+##   2 classes: '-', '+' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold) 
+## Summary of sample sizes: 498, 499, 497, 497, 497, 498, ... 
+## Resampling results across tuning parameters:
+## 
+##   interaction.depth  n.trees  Accuracy   Kappa    
+##   1                   50      0.8572006  0.7142332
+##   1                  100      0.8537602  0.7049062
+##   1                  150      0.8572655  0.7118742
+##   1                  200      0.8610005  0.7184316
+##   1                  250      0.8555459  0.7077638
+##   2                   50      0.8519420  0.7012354
+##   2                  100      0.8644420  0.7261871
+##   2                  150      0.8609692  0.7196345
+##   2                  200      0.8627537  0.7223531
+##   2                  250      0.8627874  0.7223427
+##   3                   50      0.8699615  0.7376368
+##   3                  100      0.8753187  0.7478220
+##   3                  150      0.8626551  0.7225905
+##   3                  200      0.8572330  0.7116242
+##   3                  250      0.8644084  0.7261353
+##   4                   50      0.8680447  0.7339218
+##   4                  100      0.8501239  0.6970747
+##   4                  150      0.8537278  0.7038425
+##   4                  200      0.8555471  0.7075658
+##   4                  250      0.8627874  0.7223940
+##   5                   50      0.8626563  0.7225478
+##   5                  100      0.8644745  0.7260066
+##   5                  150      0.8698966  0.7367459
+##   5                  200      0.8662602  0.7287644
+##   5                  250      0.8680784  0.7330831
+## 
+## Tuning parameter 'shrinkage' was held constant at a value of 0.1
+## 
+## Tuning parameter 'n.minobsinnode' was held constant at a value of 10
+## Accuracy was used to select the optimal model using the largest value.
+## The final values used for the model were n.trees = 100, interaction.depth =
+##  3, shrinkage = 0.1 and n.minobsinnode = 10.
+```
+
+``` r
 gbm_predictions <- predict(gbm_model_original, newdata = credit.Datos.Test.Normalizados)
 confusionMatrix(gbm_predictions, credit.Datos.Test.Normalizados$V16)
+```
 
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 60  5
+##          + 16 56
+##                                           
+##                Accuracy : 0.8467          
+##                  95% CI : (0.7753, 0.9025)
+##     No Information Rate : 0.5547          
+##     P-Value [Acc > NIR] : 3.197e-13       
+##                                           
+##                   Kappa : 0.6951          
+##                                           
+##  Mcnemar's Test P-Value : 0.0291          
+##                                           
+##             Sensitivity : 0.7895          
+##             Specificity : 0.9180          
+##          Pos Pred Value : 0.9231          
+##          Neg Pred Value : 0.7778          
+##              Prevalence : 0.5547          
+##          Detection Rate : 0.4380          
+##    Detection Prevalence : 0.4745          
+##       Balanced Accuracy : 0.8538          
+##                                           
+##        'Positive' Class : -               
+## 
 ```
 
 El modelo tiene una precisión del 84.67%, lo que significa que predice
@@ -1550,29 +2314,33 @@ un nuevo preprocesado de manera experimental a ver que logramos obtener.
 Para comenzar, vamos a eliminar las variables que el modelo considera
 menos importantes
 
-```{r}
+
+``` r
 importancia_directa <- summary(gbm_model_original$finalModel)  
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-84-1.png)<!-- -->
 
 Como podemos ver, las variables V13, V6 y V4 son de una baja importancia
 para el modelo, además, nos advertía de esto previamente con diferentes
 $warning$ al entrenarlo, por lo que hemos tenido que poner
 $suppressWarning$ por motivos de pulcridad de la salida.
 
-```{r}
+
+``` r
 credit.Datos.Train.gbm = credit.Datos.Train
 credit.Datos.Test.gbm = credit.Datos.Test
 
 
 credit.Datos.Train.gbm <- credit.Datos.Train.gbm[, !colnames(credit.Datos.Train.gbm) %in% c("V4", "V6", "V13")]
 credit.Datos.Test.gbm <- credit.Datos.Test.gbm[, !colnames(credit.Datos.Test.gbm) %in% c("V4", "V6", "V13")]
-
 ```
 
 Tras eliminar las variables, procedemos a hacer otra prueba de
 entrenamiento para ver los resultados del modelo:
 
-```{r}
+
+``` r
 set.seed(1234)
 suppressWarnings({
 gbm_model <- train(
@@ -1584,10 +2352,89 @@ gbm_model <- train(
     verbose = FALSE              
 )})
 print(gbm_model)
+```
+
+```
+## Stochastic Gradient Boosting 
+## 
+## 553 samples
+##  12 predictor
+##   2 classes: '-', '+' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold) 
+## Summary of sample sizes: 498, 499, 497, 497, 497, 498, ... 
+## Resampling results across tuning parameters:
+## 
+##   interaction.depth  n.trees  Accuracy   Kappa    
+##   1                   50      0.8553487  0.7109272
+##   1                  100      0.8536616  0.7052645
+##   1                  150      0.8553487  0.7087056
+##   1                  200      0.8589202  0.7154525
+##   1                  250      0.8446020  0.6860725
+##   2                   50      0.8573329  0.7120750
+##   2                  100      0.8589875  0.7159611
+##   2                  150      0.8571681  0.7127502
+##   2                  200      0.8554485  0.7088853
+##   2                  250      0.8609355  0.7198301
+##   3                   50      0.8645731  0.7268699
+##   3                  100      0.8699303  0.7376420
+##   3                  150      0.8626563  0.7234425
+##   3                  200      0.8643759  0.7270921
+##   3                  250      0.8626227  0.7234875
+##   4                   50      0.8681445  0.7335792
+##   4                  100      0.8645070  0.7260592
+##   4                  150      0.8590849  0.7149257
+##   4                  200      0.8645731  0.7267865
+##   4                  250      0.8682756  0.7333523
+##   5                   50      0.8680459  0.7336365
+##   5                  100      0.8572342  0.7118652
+##   5                  150      0.8590849  0.7156324
+##   5                  200      0.8644408  0.7253834
+##   5                  250      0.8590849  0.7142683
+## 
+## Tuning parameter 'shrinkage' was held constant at a value of 0.1
+## 
+## Tuning parameter 'n.minobsinnode' was held constant at a value of 10
+## Accuracy was used to select the optimal model using the largest value.
+## The final values used for the model were n.trees = 100, interaction.depth =
+##  3, shrinkage = 0.1 and n.minobsinnode = 10.
+```
+
+``` r
 gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.gbm)
 
 confusionMatrix(gbm_predictions, credit.Datos.Test.gbm$V16)
+```
 
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 63  5
+##          + 13 56
+##                                           
+##                Accuracy : 0.8686          
+##                  95% CI : (0.8003, 0.9202)
+##     No Information Rate : 0.5547          
+##     P-Value [Acc > NIR] : 2.871e-15       
+##                                           
+##                   Kappa : 0.7374          
+##                                           
+##  Mcnemar's Test P-Value : 0.09896         
+##                                           
+##             Sensitivity : 0.8289          
+##             Specificity : 0.9180          
+##          Pos Pred Value : 0.9265          
+##          Neg Pred Value : 0.8116          
+##              Prevalence : 0.5547          
+##          Detection Rate : 0.4599          
+##    Detection Prevalence : 0.4964          
+##       Balanced Accuracy : 0.8735          
+##                                           
+##        'Positive' Class : -               
+## 
 ```
 
 Como podemos ver, hemos mejorado tanto la precisión como la kappa. Para
@@ -1596,19 +2443,47 @@ de normalización distinta al que ya habíamos probado anteriormente.
 Vamos a realizar una normalización usando $preProcess$ de caret con el
 metodo range:
 
-```{r}
+
+``` r
 preprocess <- preProcess(credit.Datos.Train.gbm, method = "range")
 credit.Datos.Train.gbm.normalizado <- predict(preprocess, credit.Datos.Train.gbm)
 credit.Datos.Test.gbm.normalizado <- predict(preprocess, credit.Datos.Test.gbm)
 summary(credit.Datos.Test.gbm.normalizado)
+```
 
+```
+##  V1           V2                V3           V5            V7    
+##  a:43   Min.   :0.03128   Min.   :0.00000   g :100   v      :78  
+##  b:94   1st Qu.:0.14286   1st Qu.:0.04464   gg:  0   h      :37  
+##         Median :0.24316   Median :0.10714   p : 37   bb     :11  
+##         Mean   :0.28297   Mean   :0.16466            ff     : 9  
+##         3rd Qu.:0.40346   3rd Qu.:0.24107            j      : 1  
+##         Max.   :0.81203   Max.   :0.90036            z      : 1  
+##                                                      (Other): 0  
+##        V8           V9     V10         V11          V12         V14         
+##  Min.   :0.000000   f:60   f:76   Min.   :0.00000   f:75   Min.   :0.00000  
+##  1st Qu.:0.008772   t:77   t:61   1st Qu.:0.00000   t:62   1st Qu.:0.03800  
+##  Median :0.038070                 Median :0.00000          Median :0.08000  
+##  Mean   :0.091368                 Mean   :0.03268          Mean   :0.09303  
+##  3rd Qu.:0.122807                 3rd Qu.:0.02985          3rd Qu.:0.13600  
+##  Max.   :0.526316                 Max.   :0.25373          Max.   :0.49000  
+##                                                                             
+##       V15           V16   
+##  Min.   :0.000000   -:76  
+##  1st Qu.:0.000000   +:61  
+##  Median :0.000010         
+##  Mean   :0.007448         
+##  3rd Qu.:0.003000         
+##  Max.   :0.151080         
+## 
 ```
 
 La normalización ha escalado correctamente las variables numéricas entre
 0 y 1. Procedemos a volver a evaluar el modelo con esta nueva
 transformación:
 
-```{r}
+
+``` r
 set.seed(1234)
 
 gbm_model <- train(
@@ -1621,7 +2496,36 @@ gbm_model <- train(
     )
 gbm_predictions <- predict(gbm_model, newdata = credit.Datos.Test.gbm.normalizado)
 confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
+```
 
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 63  5
+##          + 13 56
+##                                           
+##                Accuracy : 0.8686          
+##                  95% CI : (0.8003, 0.9202)
+##     No Information Rate : 0.5547          
+##     P-Value [Acc > NIR] : 2.871e-15       
+##                                           
+##                   Kappa : 0.7374          
+##                                           
+##  Mcnemar's Test P-Value : 0.09896         
+##                                           
+##             Sensitivity : 0.8289          
+##             Specificity : 0.9180          
+##          Pos Pred Value : 0.9265          
+##          Neg Pred Value : 0.8116          
+##              Prevalence : 0.5547          
+##          Detection Rate : 0.4599          
+##    Detection Prevalence : 0.4964          
+##       Balanced Accuracy : 0.8735          
+##                                           
+##        'Positive' Class : -               
+## 
 ```
 
 Como vemos, esta transformación no ha mejorado el modelo, sino que se ha
@@ -1651,8 +2555,17 @@ conseguimos obtener.
 Para comenzar vamos a analizar los hiperparámetros que podemos
 modificar:
 
-```{r}
+
+``` r
 modelLookup(("gbm"))
+```
+
+```
+##   model         parameter                   label forReg forClass probModel
+## 1   gbm           n.trees   # Boosting Iterations   TRUE     TRUE      TRUE
+## 2   gbm interaction.depth          Max Tree Depth   TRUE     TRUE      TRUE
+## 3   gbm         shrinkage               Shrinkage   TRUE     TRUE      TRUE
+## 4   gbm    n.minobsinnode Min. Terminal Node Size   TRUE     TRUE      TRUE
 ```
 
 Como observamos tenemos cuatro hiperpárametros disponibles para
@@ -1675,8 +2588,8 @@ Vamos a aplicar una **grid search** enfocada en buscar las combinaciones
 de hiperparámetros cercanas a la elegida automáticamente por el modelo
 para intentar conseguir mejor rendimiento.
 
-```{r}
 
+``` r
 tune_grid <- expand.grid(
   n.trees = c(90, 100, 110),          
   interaction.depth = c(2, 3, 4),      
@@ -1696,8 +2609,9 @@ gbm_tuned <- train(
 )
 
 plot(gbm_tuned)
-
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-90-1.png)<!-- -->
 
 El número de iteraciones (\# Boosting Iterations), tasa de aprendizaje
 (shrinkage), y número mínimo de observaciones por nodo (n.minobsinnode)
@@ -1711,11 +2625,40 @@ interaction.depth o n.minobsinnode tienden a reducir la precisión.
 
 Vamos a ver la precisión sobre el conjunto de test:
 
-```{r}
+
+``` r
 gbm_predictions <- predict(gbm_tuned, newdata = credit.Datos.Test.gbm.normalizado)
 confusionMatrix(gbm_predictions, credit.Datos.Test.gbm.normalizado$V16)
+```
 
-
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  -  +
+##          - 65  6
+##          + 11 55
+##                                          
+##                Accuracy : 0.8759         
+##                  95% CI : (0.8088, 0.926)
+##     No Information Rate : 0.5547         
+##     P-Value [Acc > NIR] : 5.29e-16       
+##                                          
+##                   Kappa : 0.7508         
+##                                          
+##  Mcnemar's Test P-Value : 0.332          
+##                                          
+##             Sensitivity : 0.8553         
+##             Specificity : 0.9016         
+##          Pos Pred Value : 0.9155         
+##          Neg Pred Value : 0.8333         
+##              Prevalence : 0.5547         
+##          Detection Rate : 0.4745         
+##    Detection Prevalence : 0.5182         
+##       Balanced Accuracy : 0.8785         
+##                                          
+##        'Positive' Class : -              
+## 
 ```
 
 Los resultados muestran una **precisión** del **87.59%** en el conjunto
@@ -1737,7 +2680,8 @@ sensibilidad y especificidad, logrando una precisión balanceada del
 Para seleccionar el modelo final comenzaremos realizando una comparación
 de todos los modelos entrenados.
 
-```{r}
+
+``` r
 resultados <- resamples(list(
   KNN = knn_model,
   GBM = gbm_model_original,
@@ -1746,22 +2690,25 @@ resultados <- resamples(list(
   NNET_tuned = nnet_tuned,
   RandomForest = modelo_rf_cv
 ))
-
 ```
 
-```{r}
+
+``` r
 bw_plot <- bwplot(resultados, metric = "Kappa", main = "Boxplot - Kappa") 
 density_plot <- densityplot(resultados, metric = "Accuracy", main = "Density Plot - Accuracy") 
 density_plot_kappa <- densityplot(resultados, metric = "Kappa", main = "Density Plot - Kappa") 
 dot_plot <- dotplot(resultados, metric = "Accuracy", main = "Dotplot - Accuracy") 
 gridExtra::grid.arrange(bw_plot, density_plot, ncol = 2)
-
-
 ```
 
-```{r}
+![](Proyecto_files/figure-html/unnamed-chunk-93-1.png)<!-- -->
+
+
+``` r
 gridExtra::grid.arrange(density_plot_kappa, dot_plot, ncol = 2)
 ```
+
+![](Proyecto_files/figure-html/unnamed-chunk-94-1.png)<!-- -->
 
 Las gráficas están comparando diferentes modelos usando métricas clave
 como Kappa y Accuracy. En el Boxplot, se observa que los modelos GBM
