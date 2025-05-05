@@ -1,5 +1,5 @@
 ---
-title: "Proyecto AC"
+title: "Proyecto Aprendizaje Computacional"
 author:
   - "María Capilla Zapata"
   - "Gloria Sánchez Alonso"
