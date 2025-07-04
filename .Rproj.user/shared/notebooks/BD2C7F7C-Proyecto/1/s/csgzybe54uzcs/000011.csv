@@ -1,6 +1,0 @@
-"0","myplot = ggplot(data=na.omit(credit),aes(sample=V2)) +"
-"0","  ggtitle(""QQ plot para V2"") +"
-"0","  geom_qq() + "
-"0","  stat_qq_line() + "
-"0","  xlab(""Distribución teórica"") + ylab(""Distribución muestral"")"
-"0","myplot"

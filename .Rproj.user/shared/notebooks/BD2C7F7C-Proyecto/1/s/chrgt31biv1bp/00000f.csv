@@ -1,4 +1,0 @@
-"0","ggplot(credit, aes(x = V15)) +"
-"0","  geom_histogram( fill = ""blue"", color = ""black"", alpha = 0.7) +"
-"0","  labs(title = ""Histograma de V15"", x = ""Valores de V15"", y = ""Frecuencia"") +"
-"0","  theme_minimal()"

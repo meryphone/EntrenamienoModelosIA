@@ -1,4 +1,0 @@
-"0",""
-"0","ggpairs(na.omit(credit), columns = c(""V2"", ""V3"", ""V8"",""V14"",""V15"", ""V16"")"
-"0",",aes(color = V16, alpha = 0.6), title = ""Análisis Multivariable de V2 V3 V8 V14 Y V15"")"
-"0",""

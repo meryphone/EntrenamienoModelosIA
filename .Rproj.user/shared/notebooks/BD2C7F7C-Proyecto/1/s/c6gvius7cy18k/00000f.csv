@@ -1,7 +1,0 @@
-"0","min_max_normalize <- function(x) {"
-"0","  return((x - min(x)) / (max(x) - min(x)))"
-"0","}"
-"0",""
-"0","credit.Datos.Train.Normalizados$V2=min_max_normalize(credit.Datos.Train.Normalizados$V2)"
-"0","credit.Datos.Train.Normalizados$V3=min_max_normalize(credit.Datos.Train.Normalizados$V3)"
-"0","credit.Datos.Train.Normalizados$V14=min_max_normalize(credit.Datos.Train.Normalizados$V14)"

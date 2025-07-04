@@ -1,7 +1,0 @@
-"0","credit.Datos.Train.Normalizados=credit.Datos.Train"
-"0","preproc <- preProcess(credit.Datos.Train.Normalizados[, c(""V8"", ""V11"", ""V15"")], method = c(""center"", ""scale""), "
-"0","                      center = apply(credit.Datos.Train[, c(""V8"", ""V11"", ""V15"")], 2, median), "
-"0","                      scale = apply(credit.Datos.Train[, c(""V8"", ""V11"", ""V15"")], 2, IQR))"
-"0",""
-"0","credit.Datos.Train.Normalizados[, c(""V8"", ""V11"", ""V15"")] <- predict(preproc, credit.Datos.Train.Normalizados[, c(""V8"", ""V11"", ""V15"")])"
-"0","head(credit.Datos.Train.Normalizados[, c(""V8"", ""V11"", ""V15"")])"

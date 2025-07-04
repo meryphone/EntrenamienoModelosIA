@@ -1,4 +1,0 @@
-"0","ggplot(credit, aes(y = V11)) +"
-"0","  geom_boxplot(fill = ""skyblue"", color = ""darkblue"", outlier.color = ""red"", outlier.shape = 16) +"
-"0","  labs(title = ""Boxplot de V11"", y = ""V11"", x = """") +"
-"0","  theme_minimal()"

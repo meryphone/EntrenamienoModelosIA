@@ -1,4 +1,0 @@
-"0","ggplot(credit, aes(y = V8)) +"
-"0","  geom_boxplot(fill = ""skyblue"", color = ""darkblue"", outlier.color = ""red"", outlier.shape = 16) +"
-"0","  labs(title = ""Boxplot de V8"", y = ""V8"", x = """") +"
-"0","  theme_minimal()"

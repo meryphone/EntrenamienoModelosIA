@@ -1,8 +1,0 @@
-"0","set.seed(1234)"
-"0","knn_model <- train("
-"0","    V16 ~ .,                          "
-"0","    data = credit.Datos.Train.Normalizados,"
-"0","    method = ""knn"","
-"0","    trControl = control,"
-"0","    tuneLength = 10                   "
-"0",")"

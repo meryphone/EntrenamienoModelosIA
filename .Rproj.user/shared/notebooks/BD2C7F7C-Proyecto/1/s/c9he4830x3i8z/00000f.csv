@@ -1,3 +1,0 @@
-"0","credit.trainIdx<-readRDS(""credit.trainIdx"")"
-"0","credit.Datos.Train<-credit[credit.trainIdx,]"
-"0","credit.Datos.Test<-credit[-credit.trainIdx,]"

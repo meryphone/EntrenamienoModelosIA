@@ -1,8 +1,0 @@
-"0",""
-"0","preproc <- preProcess(credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)], method = ""medianImpute"")"
-"0","credit_num_imputed <- predict(preproc, credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)])"
-"0","sum(is.na(credit_num_imputed))"
-"1","[1]"
-"1"," 0"
-"1","
-"

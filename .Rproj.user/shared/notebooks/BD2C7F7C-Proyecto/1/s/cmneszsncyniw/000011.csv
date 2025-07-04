@@ -1,8 +1,0 @@
-"0","myhist = ggplot(data=na.omit(credit),aes(V2)) +"
-"0","  geom_histogram(col=""orange"",fill=""orange"",alpha=0.2) + "
-"0","  labs(title=""Histograma para V2"", y=""Count"") "
-"0","myhist = myhist + geom_vline(xintercept = mean(credit$V2),"
-"0","                             col=""blue"",linetype=""dashed"")"
-"0","myhist = myhist + geom_vline(xintercept = median(credit$V2),"
-"0","                             col=""red"",linetype=""dashed"")"
-"0","myhist"

@@ -1,4 +1,0 @@
-"0","ggplot(credit, aes(x = V14)) +"
-"0","  geom_histogram(binwidth = 14, fill = ""blue"", color = ""black"", alpha = 0.7) +"
-"0","  labs(title = ""Histograma de credit$V14"", x = ""Valores de V14"", y = ""Frecuencia"") +"
-"0","  theme_minimal()"

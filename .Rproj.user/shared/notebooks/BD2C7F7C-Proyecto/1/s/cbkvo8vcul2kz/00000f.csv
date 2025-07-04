@@ -1,3 +1,0 @@
-"0","# Calcular la importancia de las variables directamente desde gbm"
-"0","importancia_directa <- summary(gbm_model_original$finalModel)  # Si entrenaste con caret"
-"0",""

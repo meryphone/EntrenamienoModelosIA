@@ -1,5 +1,0 @@
-"0","bw_plot <- bwplot(resultados, metric = ""Kappa"", main = ""Boxplot - Kappa"") "
-"0","density_plot <- densityplot(resultados, metric = ""Accuracy"", main = ""Density Plot - Accuracy"") "
-"0","density_plot_kappa <- densityplot(resultados, metric = ""Kappa"", main = ""Density Plot - Kappa"") "
-"0","dot_plot <- dotplot(resultados, metric = ""Accuracy"", main = ""Dotplot - Accuracy"") "
-"0","gridExtra::grid.arrange(bw_plot, density_plot, ncol = 2)"
