@@ -66,58 +66,6 @@ library(nnet)
 })
 ```
 
-```
-## 
-## Adjuntando el paquete: 'dplyr'
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union
-```
-
-```
-## Registered S3 method overwritten by 'GGally':
-##   method from   
-##   +.gg   ggplot2
-```
-
-```
-## Cargando paquete requerido: lattice
-```
-
-```
-## randomForest 4.7-1.2
-```
-
-```
-## Type rfNews() to see new features/changes/bug fixes.
-```
-
-```
-## 
-## Adjuntando el paquete: 'randomForest'
-```
-
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     combine
-```
-
-```
-## The following object is masked from 'package:ggplot2':
-## 
-##     margin
-```
-
 ## Carga de la base de datos
 
 Para comenzar, cargamos la base de datos, guardando en distintas
